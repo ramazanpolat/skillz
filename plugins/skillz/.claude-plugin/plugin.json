@@ -1,0 +1,9 @@
+{
+  "name": "skillz",
+  "version": "0.1.0",
+  "description": "Ramazan's personal Claude Code skills. Each skill lives under skills/<name>/SKILL.md; add more by dropping in new folders.",
+  "author": {
+    "name": "Ramazan Polat",
+    "url": "https://github.com/ramazanpolat"
+  }
+}
