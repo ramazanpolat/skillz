@@ -1,47 +1,129 @@
 # skillz
 
 Ramazan's personal collection of [Claude Code](https://claude.com/claude-code)
-skills, distributed as a plugin marketplace so many skills can live in one repo.
+**skills**, packaged as a plugin marketplace so that many skills can live in a
+single repository and be installed with one command.
+
+---
+
+## What is a skill?
+
+A *skill* is a folder containing a `SKILL.md` file with YAML frontmatter
+(`name` + `description`) and, optionally, helper scripts. Claude Code reads the
+`description` and **invokes the skill automatically** when your request matches —
+no manual command needed. Skills let you teach Claude reusable, project- or
+machine-specific procedures (here: how to move files to a particular host).
+
+This repo distributes its skills through a **plugin marketplace**, the native
+Claude Code mechanism for sharing and installing collections of skills, commands,
+agents, and hooks.
+
+---
 
 ## Install
 
-```
+```text
 /plugin marketplace add ramazanpolat/skillz
 /plugin install skillz@skillz
 ```
 
-That installs the `skillz` plugin and all skills it bundles. Claude will invoke
-a skill automatically when a request matches its description; you can also list
-them with `/plugin`.
+- The first line registers this repo as a marketplace.
+- The second installs the `skillz` plugin and every skill it bundles.
+- Update later with `/plugin` (manage installed plugins) and re-run install to
+  pick up new skills.
 
-## Skills
+Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
+
+---
+
+## Skills in this repo
 
 | Skill | What it does |
 |-------|--------------|
-| [`file-transfer`](plugins/skillz/skills/file-transfer/SKILL.md) | Push/pull files to/from the `macminim` Mac mini (or any passwordless-SSH host) via rsync over SSH. |
+| [`file-transfer`](plugins/skillz/skills/file-transfer/SKILL.md) | Push/pull files to/from the `macminim` Mac mini (or any passwordless-SSH host) using `rsync` over SSH. |
 
-## Repo layout
+### file-transfer
 
+Moves files between your machine and a remote host that already accepts
+**passwordless SSH** (key-based auth). Wraps `rsync -avz` over SSH, so transfers
+are recursive, resumable, and skip unchanged files. Default host is `macminim`.
+
+```bash
+transfer.sh push <local-path> [remote-dest]   # local  -> remote (default dest: ~/)
+transfer.sh pull <remote-path> [local-dest]   # remote -> local  (default dest: .)
+transfer.sh ls   [remote-path]                # list a remote directory
 ```
+
+Options: `-H/--host <alias>` (or `$SKILLZ_HOST`) to target another host,
+`-n/--dry-run` to preview, `-h/--help` for full help.
+
+Examples:
+
+```bash
+transfer.sh push ./report.pdf                # -> macminim:~/report.pdf
+transfer.sh push ./build/ ~/deploys/app/     # trailing slash = copy CONTENTS
+transfer.sh pull ~/logs/app.log ./logs/      # macminim -> ./logs/
+transfer.sh -H macmini2 push ./data.csv      # different host
+```
+
+In practice you don't call the script by hand — just ask Claude Code something
+like *"send report.pdf to macminim"* or *"pull ~/logs/app.log from macminim"* and
+the skill fires.
+
+**Prerequisites:** `ssh <host>` connects without a password (test:
+`ssh -o BatchMode=yes macminim true`), and `rsync` is installed on both ends
+(standard on macOS).
+
+---
+
+## Repository layout
+
+```text
 skillz/
+├── README.md                          # this file
 ├── .claude-plugin/
-│   └── marketplace.json        # marketplace entry → the skillz plugin
+│   └── marketplace.json               # marketplace manifest → lists the skillz plugin
 └── plugins/
     └── skillz/
         ├── .claude-plugin/
-        │   └── plugin.json      # plugin manifest
-        └── skills/
-            └── file-transfer/   # one folder per skill
-                ├── SKILL.md
+        │   └── plugin.json            # plugin manifest (name, version, author)
+        ├── README.md
+        └── skills/                    # one folder per skill
+            └── file-transfer/
+                ├── SKILL.md           # frontmatter (name/description) + instructions
                 └── scripts/
+                    └── transfer.sh    # helper script the skill calls
 ```
+
+- **`marketplace.json`** advertises one plugin, `skillz`, sourced from
+  `./plugins/skillz`.
+- **`plugin.json`** is the plugin's manifest. Skills are auto-discovered from the
+  plugin's `skills/` directory — they are **not** enumerated in the manifest.
+
+---
 
 ## Adding a new skill
 
-1. Create `plugins/skillz/skills/<new-skill>/SKILL.md` with YAML frontmatter
-   (`name`, `description`) describing when Claude should use it.
-2. Put any helper scripts under that skill's own `scripts/` folder.
-3. Commit. Users get it on the next `/plugin update`.
+1. Create `plugins/skillz/skills/<new-skill>/SKILL.md` with frontmatter:
 
-No changes to `marketplace.json` or `plugin.json` are needed to add a skill —
-skills are discovered from the `skills/` directory.
+   ```markdown
+   ---
+   name: <new-skill>
+   description: <when Claude should use this skill — be specific; this is the trigger>
+   ---
+
+   # <new-skill>
+
+   Instructions for Claude on how to perform the task.
+   ```
+
+2. Put any helper scripts under that skill's own `scripts/` folder and `chmod +x`
+   them.
+3. Commit and push. Users pick it up on the next `/plugin` update — no edits to
+   `marketplace.json` or `plugin.json` required.
+
+---
+
+## License
+
+Personal use. No warranty.
