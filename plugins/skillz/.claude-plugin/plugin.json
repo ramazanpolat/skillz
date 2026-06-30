@@ -1,7 +1,8 @@
 {
   "name": "skillz",
-  "version": "0.1.0",
-  "description": "Ramazan's personal Claude Code skills. Each skill lives under skills/<name>/SKILL.md; add more by dropping in new folders.",
+  "version": "0.2.0",
+  "description": "Ramazan's personal Claude Code skills. Each skill lives under skills/<name>/SKILL.md; add more by dropping in new folders. Includes a modified fork of herdr's AGPL-3.0 skill; the bundle is licensed AGPL-3.0-or-later (see repo LICENSE/NOTICE).",
+  "license": "AGPL-3.0-or-later",
   "author": {
     "name": "Ramazan Polat",
     "url": "https://github.com/ramazanpolat"
