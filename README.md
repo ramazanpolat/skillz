@@ -42,6 +42,8 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 |-------|--------------|
 | [`file-transfer`](plugins/skillz/skills/file-transfer/SKILL.md) | Push/pull files to/from the `macminim` Mac mini (or any passwordless-SSH host) using `rsync` over SSH. |
 | [`claude-ai-archive`](plugins/skillz/skills/claude-ai-archive/SKILL.md) | Import/sync a claude.ai data export into a local on-disk mirror (`~/CLAUDE.ai/`); recovers conversation→project mapping via browser-harness. |
+| [`sprite`](plugins/skillz/skills/sprite/SKILL.md) | Sprite ([sprites.dev](https://sprites.dev/)) VM environment agent: services, checkpoints/restores, dev servers, and network policy via the in-VM `sprite-env` CLI. |
+| [`sprite-api-gateway`](plugins/skillz/skills/sprite-api-gateway/SKILL.md) | Access external APIs (GitHub, Slack, Linear, …) from a Sprite through the authenticated `api.sprites.dev` gateway — no raw API keys. |
 
 ### file-transfer
 
