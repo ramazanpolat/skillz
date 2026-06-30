@@ -1,0 +1,22 @@
+skillz — third-party components and licensing
+==============================================
+
+This repository is licensed under AGPL-3.0-or-later (see LICENSE).
+
+Third-party material
+--------------------
+
+plugins/skillz/skills/herdr/SKILL.md
+    A MODIFIED version of the agent SKILL.md from herdr
+    (https://github.com/ogulcancelik/herdr), Copyright (c) herdr authors,
+    licensed under AGPL-3.0-or-later. herdr is dual-licensed; commercial
+    licenses are available from the herdr authors (hey@herdr.dev).
+
+    Modifications by Ramazan Polat, 2026-06-30: pane self-identification
+    guidance (use $HERDR_PANE_ID / `herdr pane current`; do not rely on
+    `focused: true` / `--current`, which follow the user's UI focus rather
+    than the calling pane). The modified file remains under AGPL-3.0-or-later.
+
+Because this repository redistributes an AGPL-3.0 work, the repository as a
+whole is distributed under AGPL-3.0-or-later. The original, unmodified herdr
+project and its license terms are at https://github.com/ogulcancelik/herdr.

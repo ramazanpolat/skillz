@@ -44,6 +44,8 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`claude-ai-archive`](plugins/skillz/skills/claude-ai-archive/SKILL.md) | Import/sync a claude.ai data export into a local on-disk mirror (`~/CLAUDE.ai/`); recovers conversation→project mapping via browser-harness. |
 | [`sprite`](plugins/skillz/skills/sprite/SKILL.md) | Sprite ([sprites.dev](https://sprites.dev/)) VM environment agent: services, checkpoints/restores, dev servers, and network policy via the in-VM `sprite-env` CLI. |
 | [`sprite-api-gateway`](plugins/skillz/skills/sprite-api-gateway/SKILL.md) | Access external APIs (GitHub, Slack, Linear, …) from a Sprite through the authenticated `api.sprites.dev` gateway — no raw API keys. |
+| [`test-on-sprite`](plugins/skillz/skills/test-on-sprite/SKILL.md) | Test a repo in a disposable Sprite VM: provision a sprite per target, authenticate Claude + GitHub, checkpoint a reset point, then clone at a branch and run install/tests — driven through a live herdr console pane. |
+| [`herdr`](plugins/skillz/skills/herdr/SKILL.md) | Control herdr (terminal-native agent multiplexer) from inside it. **Modified fork** of herdr's own skill (AGPL-3.0) with corrected pane self-identification. See [License](#license). |
 
 ### file-transfer
 
@@ -101,6 +103,23 @@ CLAUDE.ai archive"* and the skill fires. Archive root defaults to `~/CLAUDE.ai`
 **Prerequisites:** [`browser-harness`](https://github.com/) on `$PATH` and a
 Chrome session logged into claude.ai (for the mapping pass), plus Python 3.
 
+### herdr
+
+Lets an agent control [herdr](https://github.com/ogulcancelik/herdr) — a
+terminal-native agent multiplexer — from inside a herdr-managed pane: list/split
+panes, run commands in siblings, wait for output or agent status, manage
+workspaces and tabs. Active when `HERDR_ENV=1`.
+
+> **This is a modified fork of herdr's own agent skill**, not original work.
+> The upstream skill told agents *"the focused pane is yours,"* which is wrong
+> when several agents run across workspaces — `focused: true` and the `--current`
+> flag follow the **user's UI focus**, not the calling shell, so splits land in
+> the wrong workspace. This fork teaches self-identification via `$HERDR_PANE_ID`
+> and `herdr pane current` and passes explicit pane ids. herdr is licensed
+> **AGPL-3.0-or-later**; this modified copy is redistributed under the same
+> license with attribution — which is why this whole repo is AGPL (see
+> [License](#license)). Upstream: https://github.com/ogulcancelik/herdr.
+
 ---
 
 ## Repository layout
@@ -108,6 +127,8 @@ Chrome session logged into claude.ai (for the mapping pass), plus Python 3.
 ```text
 skillz/
 ├── README.md                          # this file
+├── LICENSE                            # AGPL-3.0-or-later (full text)
+├── NOTICE                             # third-party attribution (herdr skill)
 ├── .claude-plugin/
 │   └── marketplace.json               # marketplace manifest → lists the skillz plugin
 └── plugins/
@@ -120,11 +141,13 @@ skillz/
             │   ├── SKILL.md           # frontmatter (name/description) + instructions
             │   └── scripts/
             │       └── transfer.sh    # helper script the skill calls
-            └── claude-ai-archive/
-                ├── SKILL.md
-                ├── config.json        # archive root + export search defaults
-                ├── lib/               # shared helpers (export loading, render, slug)
-                └── scripts/           # archive.py (import/sync/refile/status), harvest.py
+            ├── claude-ai-archive/
+            │   ├── SKILL.md
+            │   ├── config.json        # archive root + export search defaults
+            │   ├── lib/               # shared helpers (export loading, render, slug)
+            │   └── scripts/           # archive.py (import/sync/refile/status), harvest.py
+            └── herdr/                 # MODIFIED fork of herdr's skill (AGPL-3.0)
+                └── SKILL.md
 ```
 
 - **`marketplace.json`** advertises one plugin, `skillz`, sourced from
@@ -158,4 +181,13 @@ skillz/
 
 ## License
 
-Personal use. No warranty.
+**AGPL-3.0-or-later** (see [`LICENSE`](LICENSE)).
+
+This repository bundles a modified version of herdr's agent skill
+(`plugins/skillz/skills/herdr/`), which is licensed AGPL-3.0-or-later. Because
+the repo redistributes that copyleft work, the repository as a whole is
+distributed under AGPL-3.0-or-later. Third-party attribution and the list of
+modifications are in [`NOTICE`](NOTICE).
+
+herdr is dual-licensed (AGPL or commercial); the original project is at
+https://github.com/ogulcancelik/herdr. No warranty.
