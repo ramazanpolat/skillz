@@ -1,0 +1,8 @@
+{
+  "archive_root": "~/CLAUDE.ai",
+  "default_export_search_paths": ["~/Downloads", "~/DEV", "~"],
+  "export_zip_glob": "claude-ai-data-exported-*.zip",
+  "raw_export_keep_all": true,
+  "disappeared_handling": "mark-archived",
+  "browser_harness_optional": true
+}

@@ -41,6 +41,7 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | Skill | What it does |
 |-------|--------------|
 | [`file-transfer`](plugins/skillz/skills/file-transfer/SKILL.md) | Push/pull files to/from the `macminim` Mac mini (or any passwordless-SSH host) using `rsync` over SSH. |
+| [`claude-ai-archive`](plugins/skillz/skills/claude-ai-archive/SKILL.md) | Import/sync a claude.ai data export into a local on-disk mirror (`~/CLAUDE.ai/`); recovers conversation→project mapping via browser-harness. |
 
 ### file-transfer
 
@@ -74,6 +75,30 @@ the skill fires.
 `ssh -o BatchMode=yes macminim true`), and `rsync` is installed on both ends
 (standard on macOS).
 
+### claude-ai-archive
+
+Keeps a local, greppable mirror of your claude.ai content at `~/CLAUDE.ai/` —
+every chat as a `.md` + `.json` pair, every project as a folder you can `cd`
+into. Takes a claude.ai **data export** (Settings → Account → Export data) and
+builds or updates the archive; a browser-harness pass recovers the
+conversation→project mapping the export omits.
+
+```bash
+# from the skill directory
+python scripts/archive.py import --export <export.zip>   # first-time build
+python scripts/archive.py sync   --export <export.zip>   # apply a newer export
+browser-harness < scripts/harvest.py                     # recover project mapping
+python scripts/archive.py refile                         # file chats into projects
+python scripts/archive.py status                         # counts + sync state
+```
+
+In practice you just ask Claude Code *"import my claude.ai export"* or *"sync the
+CLAUDE.ai archive"* and the skill fires. Archive root defaults to `~/CLAUDE.ai`
+(override with `--archive-root` or `$CLAUDE_AI_ARCHIVE`).
+
+**Prerequisites:** [`browser-harness`](https://github.com/) on `$PATH` and a
+Chrome session logged into claude.ai (for the mapping pass), plus Python 3.
+
 ---
 
 ## Repository layout
@@ -89,10 +114,15 @@ skillz/
         │   └── plugin.json            # plugin manifest (name, version, author)
         ├── README.md
         └── skills/                    # one folder per skill
-            └── file-transfer/
-                ├── SKILL.md           # frontmatter (name/description) + instructions
-                └── scripts/
-                    └── transfer.sh    # helper script the skill calls
+            ├── file-transfer/
+            │   ├── SKILL.md           # frontmatter (name/description) + instructions
+            │   └── scripts/
+            │       └── transfer.sh    # helper script the skill calls
+            └── claude-ai-archive/
+                ├── SKILL.md
+                ├── config.json        # archive root + export search defaults
+                ├── lib/               # shared helpers (export loading, render, slug)
+                └── scripts/           # archive.py (import/sync/refile/status), harvest.py
 ```
 
 - **`marketplace.json`** advertises one plugin, `skillz`, sourced from
