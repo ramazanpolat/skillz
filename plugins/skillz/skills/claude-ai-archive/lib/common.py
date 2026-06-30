@@ -19,20 +19,31 @@ def export_path_to_dir(export_path: Path, archive_root: Path) -> Path:
         # Already extracted — copy/link into raw-export keyed by export date
         date = _detect_export_date(export_path)
         dest = raw_root / f"data-{date}"
-        if not dest.exists():
-            shutil.copytree(export_path, dest)
+        # Always materialize the *selected* export: a second export downloaded
+        # the same day maps to the same dir, so replace stale contents rather
+        # than silently reusing the earlier export's JSON.
+        _reset_dir(dest)
+        shutil.copytree(export_path, dest)
         _update_latest(raw_root, dest)
         return dest
     if export_path.suffix == ".zip":
         date = _date_from_zip_name(export_path) or _peek_zip_date(export_path)
         dest = raw_root / f"data-{date}"
-        if not dest.exists():
-            dest.mkdir()
-            with zipfile.ZipFile(export_path) as zf:
-                zf.extractall(dest)
+        _reset_dir(dest)
+        dest.mkdir()
+        with zipfile.ZipFile(export_path) as zf:
+            zf.extractall(dest)
         _update_latest(raw_root, dest)
         return dest
     raise ValueError(f"Not a .zip or directory: {export_path}")
+
+
+def _reset_dir(dest: Path) -> None:
+    """Remove dest if it exists so the selected export's contents win."""
+    if dest.is_symlink() or dest.is_file():
+        dest.unlink()
+    elif dest.is_dir():
+        shutil.rmtree(dest)
 
 
 def _date_from_zip_name(p: Path) -> str | None:

@@ -48,7 +48,7 @@ def write_conversation(conv: dict, target_dir: Path, archived: bool = False) -> 
 
 
 def write_project(p: dict, memory: str, archive_root: Path,
-                  existing_folders: dict[str, Path], slug_counts: Counter) -> Path:
+                  existing_folders: dict[str, Path]) -> Path:
     """Create or update a project folder. Returns the folder path."""
     uuid = p["uuid"]
     name = p["name"]
@@ -56,18 +56,26 @@ def write_project(p: dict, memory: str, archive_root: Path,
 
     pdir = existing_folders.get(uuid)
     if pdir is None:
-        slug = slugify(name)
-        slug_counts[slug] += 1
-        if slug_counts[slug] > 1:
-            slug = f"{slug}-{slug_counts[slug]}"
+        # Probe for a folder not already taken by another project — on disk OR
+        # assigned earlier in this run. Folders are keyed by UUID, so a new
+        # project whose name slugifies onto an existing folder must get its own
+        # path; reusing it would overwrite the other project.
+        taken = {fp.name for fp in existing_folders.values()}
+        base = slugify(name)
+        slug, n = base, 1
+        while slug in taken or (archive_root / "projects" / slug).exists():
+            n += 1
+            slug = f"{base}-{n}"
         pdir = archive_root / "projects" / slug
-        pdir.mkdir(parents=True, exist_ok=True)
+        pdir.mkdir(parents=True)
         existing_folders[uuid] = pdir
     (pdir / "chats").mkdir(exist_ok=True)
     (pdir / "CLAUDE.md").write_text(render_project(p, memory))
 
+    # Reconcile docs/ to the new export. When the export has no docs (all were
+    # deleted), drop the whole dir so stale docs don't linger in the mirror.
+    docs_dir = pdir / "docs"
     if docs:
-        docs_dir = pdir / "docs"
         docs_dir.mkdir(exist_ok=True)
         # Track which doc filenames are in the new export — anything else is stale
         wanted = set()
@@ -83,6 +91,8 @@ def write_project(p: dict, memory: str, archive_root: Path,
         for existing in docs_dir.iterdir():
             if existing.name not in wanted:
                 existing.unlink()
+    elif docs_dir.exists():
+        shutil.rmtree(docs_dir)
     return pdir
 
 
@@ -227,9 +237,8 @@ def cmd_import(args: argparse.Namespace, *, sync: bool = False) -> None:
 
     # Projects: write/update each
     print(f"→ {len(data['projects'])} projects in export")
-    slug_counts: Counter = Counter()
     for p in data["projects"]:
-        write_project(p, project_mems.get(p["uuid"], ""), archive_root, folders, slug_counts)
+        write_project(p, project_mems.get(p["uuid"], ""), archive_root, folders)
 
     # Mark archived: projects that disappeared from new export
     disappeared_projects = known_projects - new_export_project_uuids
