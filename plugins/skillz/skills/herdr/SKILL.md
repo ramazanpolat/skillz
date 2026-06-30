@@ -155,14 +155,14 @@ herdr pane split "$HERDR_PANE_ID" --direction right --no-focus
 that prints json with the new pane nested at `result.pane.pane_id`. parse that value, then run a command in that pane:
 
 ```bash
-NEW_PANE=$(herdr pane split 1-2 --direction right --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
+NEW_PANE=$(herdr pane split "$HERDR_PANE_ID" --direction right --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
 herdr pane run "$NEW_PANE" "npm run dev"
 ```
 
 split downward instead:
 
 ```bash
-herdr pane split 1-2 --direction down --no-focus
+herdr pane split "$HERDR_PANE_ID" --direction down --no-focus
 ```
 
 ## wait for output
@@ -264,7 +264,7 @@ herdr pane close 1-3
 ### run a server and wait until it is ready
 
 ```bash
-NEW_PANE=$(herdr pane split 1-2 --direction right --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
+NEW_PANE=$(herdr pane split "$HERDR_PANE_ID" --direction right --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
 herdr pane run "$NEW_PANE" "npm run dev"
 herdr wait output "$NEW_PANE" --match "ready" --timeout 30000
 herdr pane read "$NEW_PANE" --source recent --lines 20
@@ -273,10 +273,10 @@ herdr pane read "$NEW_PANE" --source recent --lines 20
 ### run tests in a separate pane and inspect the result
 
 ```bash
-herdr pane split 1-2 --direction down --no-focus
-herdr pane run 1-3 "cargo test"
-herdr wait output 1-3 --match "test result" --timeout 60000
-herdr pane read 1-3 --source recent --lines 30
+NEW_PANE=$(herdr pane split "$HERDR_PANE_ID" --direction down --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
+herdr pane run "$NEW_PANE" "cargo test"
+herdr wait output "$NEW_PANE" --match "test result" --timeout 60000
+herdr pane read "$NEW_PANE" --source recent --lines 30
 ```
 
 ### check what another agent is working on
@@ -305,10 +305,10 @@ herdr pane read 1-3 --source recent-unwrapped --lines 40
 ### spawn a new agent and give it a task
 
 ```bash
-herdr pane split 1-2 --direction right --no-focus
-herdr pane run 1-3 "claude"
-herdr wait output 1-3 --match ">" --timeout 15000
-herdr pane run 1-3 "review the test coverage in src/api/"
+NEW_PANE=$(herdr pane split "$HERDR_PANE_ID" --direction right --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
+herdr pane run "$NEW_PANE" "claude"
+herdr wait output "$NEW_PANE" --match ">" --timeout 15000
+herdr pane run "$NEW_PANE" "review the test coverage in src/api/"
 ```
 
 ### coordinate with another agent
