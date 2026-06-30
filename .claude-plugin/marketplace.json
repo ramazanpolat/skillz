@@ -12,7 +12,7 @@
     {
       "name": "skillz",
       "source": "./plugins/skillz",
-      "description": "A growing bundle of personal Claude Code skills. Currently: file-transfer (push/pull files to the macminim Mac mini over passwordless SSH)."
+      "description": "A growing bundle of personal Claude Code skills. Currently: file-transfer (push/pull files to the macminim Mac mini over passwordless SSH) and claude-ai-archive (import/sync a claude.ai data export into a local on-disk mirror)."
     }
   ]
 }
