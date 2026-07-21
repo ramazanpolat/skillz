@@ -7,6 +7,10 @@ under `skills/<name>/SKILL.md`.
 
 - **file-transfer** — push/pull files to/from `macminim` (or any passwordless-SSH
   host) via rsync over SSH. See [`skills/file-transfer/SKILL.md`](skills/file-transfer/SKILL.md).
+- **croc** — send files, folders, or text between **any two computers** (no SSH
+  needed) via [`croc`](https://github.com/schollz/croc): peer-to-peer,
+  end-to-end encrypted through a one-time code phrase, no server and no
+  accounts. See [`skills/croc/SKILL.md`](skills/croc/SKILL.md).
 - **claude-ai-archive** — import/sync a claude.ai data export into a local
   on-disk mirror (`~/CLAUDE.ai/`), and recover conversation→project mapping via
   browser-harness. See [`skills/claude-ai-archive/SKILL.md`](skills/claude-ai-archive/SKILL.md).
