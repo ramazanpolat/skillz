@@ -44,19 +44,29 @@ needs.
 
 ### Receive
 
-```bash
-croc <code-phrase>                           # receive into the current directory
-```
-
-On **Linux/macOS**, pass the secret via the `CROC_SECRET` env var instead of as
-an argument, so it doesn't leak through the process list (CVE-2023-43621):
+The receive form is **platform-dependent** — this matters, get it right:
 
 ```bash
+# Linux / macOS (default): the code MUST come from the env var, not argv
 CROC_SECRET=8451-crossover-almanac-tuna croc
+
+# Windows (default): the code as an argument is fine
+croc 8451-crossover-almanac-tuna
+
+# Any platform, interactive: run bare and croc prompts for the code
+croc            # → "Enter receive code: ____"
 ```
 
-`croc --classic` permanently opts a single-user machine back into the plain
-`croc <code>` form.
+**Why:** on Linux/macOS, croc's default mode **refuses** a code passed as a
+command-line argument — it would leak via the process list (CVE-2023-43621). If
+you run `croc <code>` there without classic mode, croc **ignores the code, prints
+setup guidance, and exits 0 without receiving anything** (`src/cli/cli.go`). So
+the argv form silently no-ops (and even looks like success). Use `CROC_SECRET`,
+the interactive prompt, or classic mode.
+
+`croc --classic` permanently opts a single-user machine into the plain
+`croc <code>` argv form (the pre-CVE behavior). Only suggest it if the user
+explicitly wants it on a machine they trust.
 
 ## Running croc from an agent (important)
 
@@ -70,9 +80,21 @@ receiver connects and the transfer finishes. So:
 3. Leave the process alive until the transfer completes (or the user is done),
    then let it exit. The sender quitting early aborts the transfer.
 
-For receiving, run `croc <code>` (or `CROC_SECRET=… croc`) foreground — it exits
-on its own when the transfer is done. Use `--yes` to skip the accept prompt in
-non-interactive contexts (see below).
+For receiving from an agent, run croc in the **foreground** — it exits on its own
+when the transfer is done — and use `--yes` to skip the accept prompt. Use the
+form that matches the OS, because the argv shortcut silently no-ops on Unix:
+
+```bash
+# Linux / macOS — REQUIRED form; `croc <code> --yes` here exits 0 without receiving
+CROC_SECRET=<code> croc --yes
+
+# Windows
+croc <code> --yes
+```
+
+If you must drive both ends yourself: start the sender with `run_in_background`,
+scrape the code from its output, then run the receiver with the OS-correct form
+above.
 
 ## Security model — read before choosing a code
 
@@ -110,7 +132,7 @@ Receiver / global:
 
 - `--yes` — auto-accept prompts (needed for unattended/scripted receives).
 - `--overwrite` — overwrite existing files without asking (pair with `--yes`).
-- `--stdout` — write the received file to stdout: `croc --yes <code> > out`.
+- `--stdout` — write the received file to stdout (Unix form): `CROC_SECRET=<code> croc --yes > out`.
 - `--quiet` — suppress output (scripts/automation).
 - `--socks5 "127.0.0.1:9050"` — route through a SOCKS5 proxy (e.g. Tor).
 - `--curve p521` — pick a different PAKE elliptic curve.
@@ -123,7 +145,7 @@ need this. To use your own:
 ```bash
 croc relay                                   # run a relay (TCP 9009-9013 by default)
 croc --relay "myrelay.example.com:9009" --pass YOURPASSWORD send <file>
-croc --relay "myrelay.example.com:9009" --pass YOURPASSWORD <code>   # receiver
+CROC_SECRET=<code> croc --relay "myrelay.example.com:9009" --pass YOURPASSWORD   # receiver (Unix)
 ```
 
 Both sides must point at the same relay and, if it's password-protected, pass
@@ -134,8 +156,9 @@ the same `--pass`.
 - **Never paste the code into a public/external channel.** Give it to the user
   and let them deliver it to the recipient over something trusted.
 - If you're driving *both* ends yourself, start the sender in the background,
-  capture the code from its output, then run the receiver with that code and
-  `--yes`.
+  capture the code from its output, then run the receiver with the OS-correct
+  form — `CROC_SECRET=<code> croc --yes` on Linux/macOS, `croc <code> --yes` on
+  Windows. On Unix, the bare `croc <code>` argv form exits 0 without receiving.
 - If `croc` isn't installed, stop and give the install command for the user's OS
   rather than assuming a package manager.
 - Don't invent a relay or password — omit `--relay`/`--pass` unless the user
