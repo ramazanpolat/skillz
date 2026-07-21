@@ -90,9 +90,11 @@ different networks, to a phone, or to a machine you have no SSH access to. Uses
 (a public relay is built in), no accounts.
 
 ```bash
-croc send <file-or-folder>           # prints a code phrase, then waits
-croc send --text "a note or URL"     # send text instead of a file
-croc <code-phrase>                   # receive (on Linux/macOS: CROC_SECRET=<code> croc)
+croc send <file-or-folder>              # prints a code phrase, then waits
+croc send --text "a note or URL"        # send text instead of a file
+
+CROC_SECRET=<code-phrase> croc          # receive — Linux/macOS
+croc --yes <code-phrase>                # receive — Windows (flags before the code)
 ```
 
 In practice you just ask Claude Code *"send report.pdf with croc"* or *"receive
@@ -100,6 +102,13 @@ croc code 8451-…"* and the skill fires. It also covers the security model (the
 code phrase **is** the credential — let croc generate a random one, treat it as
 one-time), self-hosting a relay, and the flags for excludes, QR codes, proxies,
 and piping.
+
+It's opinionated about the traps that make croc **silently no-op**: on
+Linux/macOS the code must travel via `CROC_SECRET` rather than argv (when
+receiving *and* when sending with a custom code) or croc just prints guidance and
+exits 0; global flags must precede the code positional; piping a received file
+needs `--stdout`; and a password-protected relay must be *started* with the same
+`--pass` its clients use.
 
 Complements **file-transfer**: reach for `croc` when the far side is *not*
 SSH-paired; use `file-transfer` when it is.
