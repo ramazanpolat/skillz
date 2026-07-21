@@ -41,6 +41,7 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | Skill | What it does |
 |-------|--------------|
 | [`file-transfer`](plugins/skillz/skills/file-transfer/SKILL.md) | Push/pull files to/from the `macminim` Mac mini (or any passwordless-SSH host) using `rsync` over SSH. |
+| [`croc`](plugins/skillz/skills/croc/SKILL.md) | Send files, folders, or text between **any two computers** (no SSH needed) with [`croc`](https://github.com/schollz/croc) — peer-to-peer, end-to-end encrypted via a one-time code phrase; no server, no accounts. |
 | [`claude-ai-archive`](plugins/skillz/skills/claude-ai-archive/SKILL.md) | Import/sync a claude.ai data export into a local on-disk mirror (`~/CLAUDE.ai/`); recovers conversation→project mapping via browser-harness. |
 | [`sprite`](plugins/skillz/skills/sprite/SKILL.md) | Sprite ([sprites.dev](https://sprites.dev/)) VM environment agent: services, checkpoints/restores, dev servers, and network policy via the in-VM `sprite-env` CLI. |
 | [`sprite-api-gateway`](plugins/skillz/skills/sprite-api-gateway/SKILL.md) | Access external APIs (GitHub, Slack, Linear, …) from a Sprite through the authenticated `api.sprites.dev` gateway — no raw API keys. |
@@ -78,6 +79,33 @@ the skill fires.
 **Prerequisites:** `ssh <host>` connects without a password (test:
 `ssh -o BatchMode=yes macminim true`), and `rsync` is installed on both ends
 (standard on macOS).
+
+### croc
+
+Sends files, folders, or text between **any two computers** — even across
+different networks, to a phone, or to a machine you have no SSH access to. Uses
+[`croc`](https://github.com/schollz/croc): the two sides agree on a short
+**code phrase**, which drives a PAKE key exchange, and the data flows
+**end-to-end encrypted** through a relay. No port-forwarding, no server to run
+(a public relay is built in), no accounts.
+
+```bash
+croc send <file-or-folder>           # prints a code phrase, then waits
+croc send --text "a note or URL"     # send text instead of a file
+croc <code-phrase>                   # receive (on Linux/macOS: CROC_SECRET=<code> croc)
+```
+
+In practice you just ask Claude Code *"send report.pdf with croc"* or *"receive
+croc code 8451-…"* and the skill fires. It also covers the security model (the
+code phrase **is** the credential — let croc generate a random one, treat it as
+one-time), self-hosting a relay, and the flags for excludes, QR codes, proxies,
+and piping.
+
+Complements **file-transfer**: reach for `croc` when the far side is *not*
+SSH-paired; use `file-transfer` when it is.
+
+**Prerequisites:** `croc` on `$PATH` on both machines (`brew install croc`, or
+`curl https://getcroc.schollz.com | bash`).
 
 ### claude-ai-archive
 
