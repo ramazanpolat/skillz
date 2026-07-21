@@ -127,7 +127,12 @@ above.
 Sender (`croc send ...`):
 
 - `--code <phrase>` / `-c` — set your own code (min 6 chars). Prefer the
-  generated one.
+  generated one. **On Linux/macOS a custom code must go through `CROC_SECRET`,
+  not `--code`** — same CVE-2023-43621 protection as receiving. Use
+  `CROC_SECRET=<phrase> croc send <file>`; `croc send --code <phrase> <file>`
+  there just prints guidance and exits 0 without sending (`cli.go:456`). Plain
+  `croc send <file>` (auto-generated code) is unaffected. `--code` works
+  directly on Windows or under `croc --classic`.
 - `--text <str>` / `-t` — send text/URLs instead of files.
 - `--zip` — zip a folder before sending.
 - `--exclude "node_modules,.venv"` — comma-separated substrings to skip.
