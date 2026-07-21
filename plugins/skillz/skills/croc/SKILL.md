@@ -88,9 +88,16 @@ form that matches the OS, because the argv shortcut silently no-ops on Unix:
 # Linux / macOS — REQUIRED form; `croc <code> --yes` here exits 0 without receiving
 CROC_SECRET=<code> croc --yes
 
-# Windows
-croc <code> --yes
+# Windows — flags BEFORE the code (see flag-order note below)
+croc --yes <code>
 ```
+
+**Flag order matters.** croc uses Go's stdlib flag parser, which stops at the
+first non-flag argument — so any global flag (`--yes`, `--overwrite`, `--stdout`,
+`--relay`, `--pass`, `--curve`) must come **before** the code positional.
+`croc <code> --yes` leaves `--yes` unparsed and croc still prompts; write
+`croc --yes <code>`. (On Unix the code lives in `CROC_SECRET`, not argv, so
+ordering there is moot.)
 
 If you must drive both ends yourself: start the sender with `run_in_background`,
 scrape the code from its output, then run the receiver with the OS-correct form
@@ -132,7 +139,9 @@ Receiver / global:
 
 - `--yes` — auto-accept prompts (needed for unattended/scripted receives).
 - `--overwrite` — overwrite existing files without asking (pair with `--yes`).
-- `--stdout` — write the received file to stdout (Unix form): `CROC_SECRET=<code> croc --yes > out`.
+- `--stdout` — write received file **bytes** to stdout. Required for piping — a
+  bare `> out` redirect without `--stdout` still writes the file to disk and
+  leaves `out` empty. Unix form: `CROC_SECRET=<code> croc --yes --stdout > out`.
 - `--quiet` — suppress output (scripts/automation).
 - `--socks5 "127.0.0.1:9050"` — route through a SOCKS5 proxy (e.g. Tor).
 - `--curve p521` — pick a different PAKE elliptic curve.
@@ -143,13 +152,17 @@ The built-in public relay (`croc.schollz.com`) is used by default — you rarely
 need this. To use your own:
 
 ```bash
-croc relay                                   # run a relay (TCP 9009-9013 by default)
+# start the relay WITH the password (global flag, before the subcommand)
+croc --pass YOURPASSWORD relay               # or: CROC_PASS=YOURPASSWORD croc relay
+# senders / receivers point at it with the SAME --pass
 croc --relay "myrelay.example.com:9009" --pass YOURPASSWORD send <file>
 CROC_SECRET=<code> croc --relay "myrelay.example.com:9009" --pass YOURPASSWORD   # receiver (Unix)
 ```
 
-Both sides must point at the same relay and, if it's password-protected, pass
-the same `--pass`.
+The relay password (`--pass`, default `pass123`) protects the relay process
+itself — **start the relay with the same `--pass` the clients use**, or they
+won't match. All three parties must share the same relay address and password.
+For an open relay, omit `--pass` everywhere.
 
 ## Notes for the assistant
 
@@ -157,8 +170,9 @@ the same `--pass`.
   and let them deliver it to the recipient over something trusted.
 - If you're driving *both* ends yourself, start the sender in the background,
   capture the code from its output, then run the receiver with the OS-correct
-  form — `CROC_SECRET=<code> croc --yes` on Linux/macOS, `croc <code> --yes` on
-  Windows. On Unix, the bare `croc <code>` argv form exits 0 without receiving.
+  form — `CROC_SECRET=<code> croc --yes` on Linux/macOS, `croc --yes <code>` on
+  Windows (flags before the code). On Unix, the bare `croc <code>` argv form
+  exits 0 without receiving.
 - If `croc` isn't installed, stop and give the install command for the user's OS
   rather than assuming a package manager.
 - Don't invent a relay or password — omit `--relay`/`--pass` unless the user
