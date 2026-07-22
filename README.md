@@ -40,15 +40,24 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 
 | Skill | What it does |
 |-------|--------------|
-| [`file-transfer`](plugins/skillz/skills/file-transfer/SKILL.md) | Push/pull files to/from the `macminim` Mac mini (or any passwordless-SSH host) using `rsync` over SSH. |
-| [`croc`](plugins/skillz/skills/croc/SKILL.md) | Send files, folders, or text between **any two computers** (no SSH needed) with [`croc`](https://github.com/schollz/croc) — peer-to-peer, end-to-end encrypted via a one-time code phrase; no server, no accounts. |
+| [`croc`](plugins/skillz/skills/croc/SKILL.md) | **Default for sending.** Files, folders, or text to **any** computer (no SSH needed) with [`croc`](https://github.com/schollz/croc) — peer-to-peer, end-to-end encrypted via a one-time code phrase; no server, no accounts. |
+| [`file-transfer`](plugins/skillz/skills/file-transfer/SKILL.md) | Specialist for **passwordless-SSH hosts** (e.g. `macminim`): *unattended* push, plus `pull` and `ls` — the things croc can't do. `rsync` over SSH. |
 | [`claude-ai-archive`](plugins/skillz/skills/claude-ai-archive/SKILL.md) | Import/sync a claude.ai data export into a local on-disk mirror (`~/CLAUDE.ai/`); recovers conversation→project mapping via browser-harness. |
 | [`sprite`](plugins/skillz/skills/sprite/SKILL.md) | Sprite ([sprites.dev](https://sprites.dev/)) VM environment agent: services, checkpoints/restores, dev servers, and network policy via the in-VM `sprite-env` CLI. |
 | [`sprite-api-gateway`](plugins/skillz/skills/sprite-api-gateway/SKILL.md) | Access external APIs (GitHub, Slack, Linear, …) from a Sprite through the authenticated `api.sprites.dev` gateway — no raw API keys. |
 | [`test-on-sprite`](plugins/skillz/skills/test-on-sprite/SKILL.md) | Test a repo in a disposable Sprite VM: provision a sprite per target, authenticate Claude + GitHub, checkpoint a reset point, then clone at a branch and run install/tests — driven through a live herdr console pane. |
 | [`herdr`](plugins/skillz/skills/herdr/SKILL.md) | Control herdr (terminal-native agent multiplexer) from inside it. **Modified fork** of herdr's own skill (AGPL-3.0) with corrected pane self-identification. See [License](#license). |
 
+> **Two transfer skills — which fires?** Default is **`croc`**. **`file-transfer`**
+> takes over only when the target is a named SSH host (e.g. `macminim`), when
+> pulling *from* a remote, listing a remote directory, or running an unattended /
+> scripted sync. Those are precisely what croc can't do: it is push-only and needs
+> a person at the far end to enter the code phrase.
+
 ### file-transfer
+
+The **SSH specialist** — use it when `croc` can't do the job (unattended push,
+`pull`, `ls`, scripted sync); otherwise `croc` is the default.
 
 Moves files between your machine and a remote host that already accepts
 **passwordless SSH** (key-based auth). Wraps `rsync -avz` over SSH, so transfers
@@ -82,6 +91,9 @@ the skill fires.
 
 ### croc
 
+The **default transfer skill** — reach for this unless one of the
+`file-transfer` conditions above applies.
+
 Sends files, folders, or text between **any two computers** — even across
 different networks, to a phone, or to a machine you have no SSH access to. Uses
 [`croc`](https://github.com/schollz/croc): the two sides agree on a short
@@ -110,8 +122,10 @@ exits 0; global flags must precede the code positional; piping a received file
 needs `--stdout`; and a password-protected relay must be *started* with the same
 `--pass` its clients use.
 
-Complements **file-transfer**: reach for `croc` when the far side is *not*
-SSH-paired; use `file-transfer` when it is.
+Its one limitation: a **person must be at the far end** to run the receive
+command, and both ends must be live at the same time. When that's a problem — an
+unattended push to `macminim`, a `pull`, an `ls`, or a scripted sync — use
+**file-transfer** instead.
 
 **Prerequisites:** `croc` on `$PATH` on both machines (`brew install croc`, or
 `curl https://getcroc.schollz.com | bash`).

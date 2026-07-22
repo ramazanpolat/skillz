@@ -1,6 +1,6 @@
 ---
 name: croc
-description: Securely transfer files, folders, or text between two computers using croc (schollz/croc) — peer-to-peer, end-to-end encrypted via a one-time code phrase, no server to run and no accounts. Use when the user wants to send/receive/beam files or text between machines that are NOT set up for SSH (different networks, someone else's computer, phone), mentions croc, or asks for a code-phrase / PAKE file transfer. For hosts that already accept passwordless SSH, prefer the file-transfer skill instead.
+description: The default way to send a file, folder, or text to another person or machine. Uses croc (schollz/croc) — peer-to-peer, end-to-end encrypted via a one-time code phrase, with no server to run, no accounts, and no SSH setup. Use for any general "send / share / beam / transfer this to X" request, for someone else's computer or a phone, for machines on different networks, and whenever the user mentions croc or a code-phrase / PAKE transfer. Note it needs a person at the far end to enter the code. Use the file-transfer skill instead when the target is a named passwordless-SSH host (e.g. macminim), or when pulling FROM a remote, listing a remote directory, or running an unattended or scripted sync.
 ---
 
 # croc
@@ -12,12 +12,21 @@ relay. No port-forwarding, no accounts, no server to stand up.
 
 ## When to use this vs file-transfer
 
-- **croc (this skill):** the two machines are not SSH-paired — different
-  networks, a colleague's laptop, a phone, a fresh box. The only shared secret
-  is a code phrase you read out or paste to the other side.
-- **file-transfer skill:** the destination already accepts **passwordless SSH**
-  (e.g. `macminim`). That path is faster and needs no code phrase. Use it when
-  it applies.
+**croc is the default** for "send this to X". Reach for it unless one of the
+file-transfer conditions below clearly applies.
+
+- **croc (this skill):** any general send/share/beam — a colleague's laptop, a
+  phone, a fresh box, a machine on another network. The only shared secret is a
+  code phrase you read out or paste to the other side. **Caveat:** it needs a
+  person at the far end to run the receive command, and both ends must be live
+  at the same time.
+- **file-transfer skill** — use it instead when *any* of these hold, because
+  croc cannot do them:
+  - the target is a named passwordless-SSH host (e.g. `macminim`) — rsync
+    completes **unattended**, with nobody at the far end;
+  - you are **pulling** from a remote, or **listing** a remote directory (croc
+    is push-only);
+  - you want a repeatable/scripted **sync** that skips unchanged files.
 
 ## Prerequisites
 

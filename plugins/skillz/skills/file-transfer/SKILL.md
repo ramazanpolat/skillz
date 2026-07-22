@@ -1,6 +1,6 @@
 ---
 name: file-transfer
-description: Transfer files to or from the macminim Mac mini (or any passwordless-SSH host) using rsync over SSH. Use when the user wants to send, copy, upload, push, download, pull, or sync files/folders to/from macminim or another SSH host alias.
+description: Move files to or from a passwordless-SSH host (e.g. the macminim Mac mini) using rsync over SSH. Use specifically when the user names an SSH host alias such as macminim; when pulling, downloading, or fetching FROM a remote; when listing a remote directory; or when an unattended or scripted sync is wanted — rsync needs nobody at the far end and skips unchanged files. For a general "send this to someone" request, a phone, or any machine that is not SSH-paired, use the croc skill instead.
 ---
 
 # file-transfer
@@ -10,6 +10,22 @@ Push and pull files between this machine and a remote host that already accepts
 
 The skill wraps `scripts/transfer.sh`, which uses `rsync -avz` over SSH so
 transfers are resumable, recursive, and skip unchanged files.
+
+## When to use this vs croc
+
+**`croc` is the default for general "send this to someone" requests.** This skill
+is the specialist — pick it only when one of these holds, since croc cannot do
+any of them:
+
+- the target is a **named passwordless-SSH host** (e.g. `macminim`), so the
+  transfer completes **unattended** — croc needs a person at the far end to type
+  a code phrase, and both ends live at once;
+- you are **pulling** from a remote, or **listing** a remote directory — croc is
+  push-only;
+- you want a repeatable or **scripted sync** that skips unchanged files.
+
+Otherwise — a colleague's laptop, a phone, any machine not SSH-paired — use the
+`croc` skill.
 
 ## Prerequisites
 
