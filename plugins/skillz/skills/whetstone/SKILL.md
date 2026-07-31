@@ -44,11 +44,17 @@ open PR ──> @codex review ──> fix ALL findings ──> re-request
 3. **Triage every finding.** Confirm or refute each against the code — do not accept
    on authority, and do not dismiss on ego.
 4. **Fix**, verifying each fix empirically (see *Verification*).
-5. **Baseline, then reply.** Capture the ids **before** posting, because the reply is
+5. **Commit and push, and confirm the remote head moved.** The reviewer reads the
+   remote, not your worktree. Skip this and the next round re-reads the unchanged
+   head: at best it repeats the findings you just fixed, at worst it returns clean
+   and the merge criterion is satisfied by code that never left your machine — the
+   head-correlated check under *Watching for the review* asks GitHub for `pulls/N`
+   `head.sha`, which is the *remote* head, so it will happily confirm a stale commit.
+6. **Baseline, then reply.** Capture the ids **before** posting, because the reply is
    what re-triggers the review. Name what was valid, what was refuted and with what
    evidence, and what was a deliberate non-fix. End with `@codex review`.
-6. **Repeat** until a round returns clean.
-7. **Merge**, remove the worktree, delete the branch.
+7. **Repeat** until a round returns clean.
+8. **Merge**, remove the worktree, delete the branch.
 
 The ordering in steps 1 and 5 is the whole trick: **a baseline is only valid if it is
 taken before the request that it is meant to bound.** Take it after, and the round's
