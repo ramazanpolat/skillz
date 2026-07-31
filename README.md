@@ -50,15 +50,19 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`whetstone`](plugins/skillz/skills/whetstone/SKILL.md) | Adversarial cross-agent review loop: open a PR, have Codex review it, fix **every** finding, re-request, repeat — and merge only on a round that returns clean. |
 
 > **Two transfer skills — which fires?** Default is **`croc`**. **`file-transfer`**
-> takes over only when the target is a named SSH host (e.g. `macminim`), when
-> pulling *from* a remote, listing a remote directory, or running an unattended /
-> scripted sync. Those are precisely what croc can't do: it is push-only and needs
-> a person at the far end to enter the code phrase.
+> takes over only when a **named passwordless-SSH host** (e.g. `macminim`) is
+> involved — that is a precondition, not one trigger among several, because the
+> skill only speaks rsync-over-ssh. Given such a host it does what croc can't:
+> unattended transfer with nobody at the far end, pulling *from* that host, listing
+> a directory on it, or a scripted sync that skips unchanged files. A download that
+> names no SSH host — a URL, a git remote, a package registry, an artifact store, a
+> cloud bucket — is neither skill's job.
 
 ### file-transfer
 
-The **SSH specialist** — use it when `croc` can't do the job (unattended push,
-`pull`, `ls`, scripted sync); otherwise `croc` is the default.
+The **SSH specialist** — it needs a named passwordless-SSH host; given one, use it
+for what `croc` can't do (unattended push, `pull` from that host, `ls` on it,
+scripted sync). Otherwise `croc` is the default.
 
 Moves files between your machine and a remote host that already accepts
 **passwordless SSH** (key-based auth). Wraps `rsync -avz` over SSH, so transfers
