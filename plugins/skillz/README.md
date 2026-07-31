@@ -31,3 +31,9 @@ under `skills/<name>/SKILL.md`.
   self-identification (`$HERDR_PANE_ID` / `herdr pane current` instead of
   `focused` / `--current`). See [`skills/herdr/SKILL.md`](skills/herdr/SKILL.md)
   and the repo `NOTICE` / `LICENSE`.
+- **whetstone** — adversarial cross-agent review loop: open a PR, have Codex review
+  it, fix **every** finding, re-request, repeat, and merge only on a round that
+  returns clean. Covers wrong-claim criteria in the PR body, verifying a fix by
+  reproducing the failure first, and the reviews-vs-issue-comments split that makes
+  a clean round look like silence. See
+  [`skills/whetstone/SKILL.md`](skills/whetstone/SKILL.md).

@@ -1,6 +1,6 @@
 ---
 name: file-transfer
-description: Move files to or from a passwordless-SSH host (e.g. the macminim Mac mini) using rsync over SSH. Use specifically when the user names an SSH host alias such as macminim; when pulling, downloading, or fetching FROM a remote; when listing a remote directory; or when an unattended or scripted sync is wanted — rsync needs nobody at the far end and skips unchanged files. For a general "send this to someone" request, a phone, or any machine that is not SSH-paired, use the croc skill instead.
+description: Move files to or from a passwordless-SSH host (e.g. the macminim Mac mini) using rsync over SSH. Every trigger requires an SSH host — use it when the user names an SSH alias such as macminim, or clearly means one, and then wants to push to it, pull/download/fetch FROM it, list a directory on it, or run an unattended or scripted sync against it (rsync needs nobody at the far end and skips unchanged files). Do NOT use it for a download that names no SSH host — a URL, a git remote, a package registry, an artifact store, or a cloud bucket are all other tools' work. For a general "send this to someone" request, a phone, or any machine that is not SSH-paired, use the croc skill instead.
 ---
 
 # file-transfer
