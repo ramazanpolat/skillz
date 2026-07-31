@@ -36,15 +36,24 @@ open PR ──> @codex review ──> fix ALL findings ──> re-request
                                 merge
 ```
 
-1. **Open the PR** with `@codex review` as the first line of the body.
+1. **Open the PR** with `@codex review` as the first line of the body. This triggers
+   the first review immediately, so **the first round has no baseline to take** — the
+   PR number does not exist until the PR does. Treat every id as new for round one
+   (`BASE_*=0`); anything else races the reviewer and silently swallows the round.
 2. **Wait** for the review (see *Watching for the review*).
 3. **Triage every finding.** Confirm or refute each against the code — do not accept
    on authority, and do not dismiss on ego.
 4. **Fix**, verifying each fix empirically (see *Verification*).
-5. **Reply** naming what was valid, what was refuted and with what evidence, and what
-   was a deliberate non-fix. End with `@codex review`.
+5. **Baseline, then reply.** Capture the ids **before** posting, because the reply is
+   what re-triggers the review. Name what was valid, what was refuted and with what
+   evidence, and what was a deliberate non-fix. End with `@codex review`.
 6. **Repeat** until a round returns clean.
 7. **Merge**, remove the worktree, delete the branch.
+
+The ordering in steps 1 and 5 is the whole trick: **a baseline is only valid if it is
+taken before the request that it is meant to bound.** Take it after, and the round's
+own ids land inside the baseline and are then filtered out by `id > $b` — the loop
+waits forever for findings that already arrived.
 
 ## Writing the PR body
 
@@ -120,7 +129,12 @@ R=OWNER/REPO N=42
 # every query below: --paginate --slurp, piped to jq. .[][] flattens page,item.
 api() { gh api --paginate --slurp "$1"; }
 
-# 1. BEFORE commenting "@codex review" — record where the thread stands
+# 1. FIRST ROUND (PR just opened with the mention): there is nothing to bound yet.
+BASE_C=0 BASE_R=0 BASE_V=0
+
+# 1'. EVERY LATER ROUND: baseline BEFORE posting the reply that re-triggers the
+#     review. Taken afterwards, the round's own ids fall inside the baseline and
+#     `id > $b` hides them.
 BASE_C=$(api "repos/$R/pulls/$N/comments"  | jq '[.[][].id] | max // 0')
 BASE_R=$(api "repos/$R/pulls/$N/reviews"   | jq '[.[][].id] | max // 0')
 BASE_V=$(api "repos/$R/issues/$N/comments" | jq '[.[][].id] | max // 0')
@@ -130,9 +144,10 @@ BASE_V=$(api "repos/$R/issues/$N/comments" | jq '[.[][].id] | max // 0')
 api "repos/$R/pulls/$N/reviews" \
   | jq -r --argjson b "$BASE_R" '.[][] | select(.id > $b) | select((.body//"")!="")
       | "REVIEW \(.id)\n\(.body)\n"'
+# .line is null once a comment goes outdated — fall back to original_line.
 api "repos/$R/pulls/$N/comments" \
   | jq -r --argjson b "$BASE_C" '.[][] | select(.id > $b)
-      | "INLINE \(.id) \(.path):\(.line)\n\(.body)\n"'
+      | "INLINE \(.id) \(.path):\(.line // .original_line // "?")\n\(.body)\n"'
 
 # 3. Clean only if a NEW verdict names the CURRENT head (body abbreviates to 10 chars)
 HEAD=$(gh api "repos/$R/pulls/$N" --jq .head.sha)
