@@ -1,6 +1,6 @@
 ---
 name: croc
-description: Securely transfer files, folders, or text between two computers using croc (schollz/croc) — peer-to-peer, end-to-end encrypted via a one-time code phrase, no server to run and no accounts. Use when the user wants to send/receive/beam files or text between machines that are NOT set up for SSH (different networks, someone else's computer, phone), mentions croc, or asks for a code-phrase / PAKE file transfer. For hosts that already accept passwordless SSH, prefer the file-transfer skill instead.
+description: "The default way to move a file, folder, or text between two people or machines, in either direction — peer-to-peer, end-to-end encrypted via a one-time code phrase, with no server, no accounts, no SSH setup. Use for any \"send / share / beam this to X\" request and any \"receive / get / grab this from X\" where X is a person or their machine — someone else's computer, a phone, a machine on another network — and whenever croc or a code phrase is mentioned. Both ends must be live; to receive, the other side runs croc send. Use file-transfer instead only when a passwordless-SSH host is involved (e.g. macminim). When the far end is a service rather than a person or an SSH host — a URL, git remote, package registry, artifact store, or cloud bucket — neither skill applies, uploading or downloading alike."
 ---
 
 # croc
@@ -12,12 +12,28 @@ relay. No port-forwarding, no accounts, no server to stand up.
 
 ## When to use this vs file-transfer
 
-- **croc (this skill):** the two machines are not SSH-paired — different
-  networks, a colleague's laptop, a phone, a fresh box. The only shared secret
-  is a code phrase you read out or paste to the other side.
-- **file-transfer skill:** the destination already accepts **passwordless SSH**
-  (e.g. `macminim`). That path is faster and needs no code phrase. Use it when
-  it applies.
+**croc is the default** for "send this to X". Reach for it unless one of the
+file-transfer conditions below clearly applies.
+
+- **croc (this skill):** any general send/share/beam, **and receiving from a
+  person too** — a colleague's laptop, a phone, a fresh box, a machine on another
+  network. To receive, the other side runs `croc send` and you enter the code.
+  The only shared secret is a
+  code phrase you read out or paste to the other side. **Caveat:** it needs a
+  person at the far end to run the receive command, and both ends must be live
+  at the same time.
+- **file-transfer skill** — use it instead when the other end is a **named
+  passwordless-SSH host** (e.g. `macminim`). That is a precondition, not one
+  option among several: file-transfer only speaks rsync-over-ssh. Given such a
+  host, it does what croc cannot:
+  - completes **unattended**, with nobody at the far end;
+  - **pulls** from that host, or **lists** a directory on it (croc is push-only);
+  - runs a repeatable/scripted **sync** that skips unchanged files.
+
+  When the other end is a **service** rather than a person or an SSH host, neither
+  skill applies — uploading to or downloading from a URL, a git remote, a package
+  registry, an artifact store, or a cloud bucket is other tools' work, in **either**
+  direction. A bucket cannot run a croc receiver any more than it can accept rsync.
 
 ## Prerequisites
 
