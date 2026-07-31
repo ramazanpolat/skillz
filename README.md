@@ -54,9 +54,10 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 > involved — that is a precondition, not one trigger among several, because the
 > skill only speaks rsync-over-ssh. Given such a host it does what croc can't:
 > unattended transfer with nobody at the far end, pulling *from* that host, listing
-> a directory on it, or a scripted sync that skips unchanged files. A download that
-> names no SSH host — a URL, a git remote, a package registry, an artifact store, a
-> cloud bucket — is neither skill's job.
+> a directory on it, or a scripted sync that skips unchanged files. When the other
+> end is a **service** rather than a person or an SSH host — a URL, a git remote, a
+> package registry, an artifact store, a cloud bucket — it is neither skill's job,
+> uploading or downloading alike.
 
 ### file-transfer
 

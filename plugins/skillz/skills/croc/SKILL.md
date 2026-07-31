@@ -1,6 +1,6 @@
 ---
 name: croc
-description: The default way to send a file, folder, or text to another person or machine. Uses croc (schollz/croc) — peer-to-peer, end-to-end encrypted via a one-time code phrase, with no server to run, no accounts, and no SSH setup. Use for any general "send / share / beam / transfer this to X" request, for someone else's computer or a phone, for machines on different networks, and whenever the user mentions croc or a code-phrase / PAKE transfer. Note it needs a person at the far end to enter the code. Use the file-transfer skill instead only when a passwordless-SSH host is involved (e.g. macminim) — pushing to it, pulling from it, listing a directory on it, or running an unattended or scripted sync against it. A download that names no SSH host (a URL, git remote, package registry, artifact store, or cloud bucket) is neither this skill nor file-transfer.
+description: The default way to move a file, folder, or text between two people or machines, in either direction. Uses croc (schollz/croc) — peer-to-peer, end-to-end encrypted via a one-time code phrase, with no server to run, no accounts, and no SSH setup. Use for any general "send / share / beam / transfer this to X" request AND for "receive / get / grab this from X" when X is a person or their machine; for someone else's computer or a phone; for machines on different networks; and whenever the user mentions croc or a code-phrase / PAKE transfer. Both ends must be live and a person at the far end runs the matching command — to receive, they run croc send. Use the file-transfer skill instead only when a passwordless-SSH host is involved (e.g. macminim) — pushing to it, pulling from it, listing a directory on it, or running an unattended or scripted sync against it. Neither skill applies when the other end is a service rather than a person or an SSH host: uploading to or downloading from a URL, git remote, package registry, artifact store, or cloud bucket is other tools' work, in either direction.
 ---
 
 # croc
@@ -15,8 +15,10 @@ relay. No port-forwarding, no accounts, no server to stand up.
 **croc is the default** for "send this to X". Reach for it unless one of the
 file-transfer conditions below clearly applies.
 
-- **croc (this skill):** any general send/share/beam — a colleague's laptop, a
-  phone, a fresh box, a machine on another network. The only shared secret is a
+- **croc (this skill):** any general send/share/beam, **and receiving from a
+  person too** — a colleague's laptop, a phone, a fresh box, a machine on another
+  network. To receive, the other side runs `croc send` and you enter the code.
+  The only shared secret is a
   code phrase you read out or paste to the other side. **Caveat:** it needs a
   person at the far end to run the receive command, and both ends must be live
   at the same time.
@@ -28,10 +30,10 @@ file-transfer conditions below clearly applies.
   - **pulls** from that host, or **lists** a directory on it (croc is push-only);
   - runs a repeatable/scripted **sync** that skips unchanged files.
 
-  With no SSH host in the picture, neither skill applies — pulling from a URL, a
-  git remote, a package registry, an artifact store, or a cloud bucket is other
-  tools' work. And croc genuinely cannot pull from a colleague's laptop: ask them
-  to `croc send`, then receive.
+  When the other end is a **service** rather than a person or an SSH host, neither
+  skill applies — uploading to or downloading from a URL, a git remote, a package
+  registry, an artifact store, or a cloud bucket is other tools' work, in **either**
+  direction. A bucket cannot run a croc receiver any more than it can accept rsync.
 
 ## Prerequisites
 
