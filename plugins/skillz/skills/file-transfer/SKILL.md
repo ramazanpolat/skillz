@@ -14,18 +14,19 @@ transfers are resumable, recursive, and skip unchanged files.
 ## When to use this vs croc
 
 **`croc` is the default for general "send this to someone" requests.** This skill
-is the specialist — pick it only when one of these holds, since croc cannot do
-any of them:
+is the specialist, and it has one precondition: **a named passwordless-SSH host**
+(e.g. `macminim`). It only speaks rsync-over-ssh, so without such a host it does
+not apply at all. Given one, pick it for what croc cannot do:
 
-- the target is a **named passwordless-SSH host** (e.g. `macminim`), so the
-  transfer completes **unattended** — croc needs a person at the far end to type
-  a code phrase, and both ends live at once;
-- you are **pulling** from a remote, or **listing** a remote directory — croc is
+- the transfer completes **unattended** — croc needs a person at the far end to
+  type a code phrase, with both ends live at once;
+- you are **pulling** from that host, or **listing** a directory on it — croc is
   push-only;
 - you want a repeatable or **scripted sync** that skips unchanged files.
 
 Otherwise — a colleague's laptop, a phone, any machine not SSH-paired — use the
-`croc` skill.
+`croc` skill. And a download that names no host at all (a URL, a git remote, a
+package registry, an artifact store, a cloud bucket) is neither skill's job.
 
 ## Prerequisites
 

@@ -20,13 +20,18 @@ file-transfer conditions below clearly applies.
   code phrase you read out or paste to the other side. **Caveat:** it needs a
   person at the far end to run the receive command, and both ends must be live
   at the same time.
-- **file-transfer skill** — use it instead when *any* of these hold, because
-  croc cannot do them:
-  - the target is a named passwordless-SSH host (e.g. `macminim`) — rsync
-    completes **unattended**, with nobody at the far end;
-  - you are **pulling** from a remote, or **listing** a remote directory (croc
-    is push-only);
-  - you want a repeatable/scripted **sync** that skips unchanged files.
+- **file-transfer skill** — use it instead when the other end is a **named
+  passwordless-SSH host** (e.g. `macminim`). That is a precondition, not one
+  option among several: file-transfer only speaks rsync-over-ssh. Given such a
+  host, it does what croc cannot:
+  - completes **unattended**, with nobody at the far end;
+  - **pulls** from that host, or **lists** a directory on it (croc is push-only);
+  - runs a repeatable/scripted **sync** that skips unchanged files.
+
+  With no SSH host in the picture, neither skill applies — pulling from a URL, a
+  git remote, a package registry, an artifact store, or a cloud bucket is other
+  tools' work. And croc genuinely cannot pull from a colleague's laptop: ask them
+  to `croc send`, then receive.
 
 ## Prerequisites
 
