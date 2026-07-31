@@ -85,26 +85,60 @@ cycle:
 
 | What | Where |
 |---|---|
-| Findings | `pulls/N/reviews` **and** `pulls/N/comments` (inline) |
+| Findings | `pulls/N/reviews` (review **body**) **and** `pulls/N/comments` (inline) |
 | "Didn't find any major issues" | `issues/N/comments` — a plain issue comment |
+
+Query both finding endpoints every round. A round whose feedback sits in the review
+body rather than inline comments will otherwise look empty, and the loop will stop
+with findings unaddressed.
 
 A watcher looking only at reviews **times out on a clean round** and looks like
 nothing happened.
 
-**Key on the comment id alone.** GitHub re-anchors existing review comments to the new
-head commit when a file changes, so a key of `id+path+commit` makes old comments look
-new. Read each comment's `commit_id` to tell a fresh finding from a re-post against an
-older commit.
+Two traps make naive polling wrong, and both have bitten:
+
+- **`commit_id` is not a freshness signal.** GitHub *re-anchors* existing review
+  comments onto the new head when a file changes, so old findings reappear carrying
+  the current SHA. Filtering by `commit_id == head` returns stale comments as if they
+  were this round's.
+- **A stale clean verdict is still sitting there.** After any earlier clean round,
+  "didn't find any major issues" stays in the thread forever. Matching on the text
+  alone will report clean the instant you re-request, before the new review runs —
+  and merge on it.
+
+So: **baseline the ids before re-requesting, and require the verdict to name the
+current head.** Comment ids increase monotonically, which is all the ordering needed.
 
 ```bash
-# every finding, with the commit it was written against
-gh api "repos/OWNER/REPO/pulls/N/comments" \
-  --jq '.[] | "\(.id) \(.commit_id[0:8]) \(.path):\(.line)\n\(.body)\n"'
+R=OWNER/REPO N=42
 
-# the clean verdict lives here instead
-gh api "repos/OWNER/REPO/issues/N/comments" \
-  --jq '.[] | select(.user.login | test("codex")) | .body'
+# 1. BEFORE commenting "@codex review" — record where the thread stands
+BASE_C=$(gh api "repos/$R/pulls/$N/comments"  --jq '[.[].id] | max // 0')
+BASE_R=$(gh api "repos/$R/pulls/$N/reviews"   --jq '[.[].id] | max // 0')
+BASE_V=$(gh api "repos/$R/issues/$N/comments" --jq '[.[].id] | max // 0')
+
+# 2. AFTER the review lands — findings from BOTH endpoints, only the new ones.
+#    Review bodies carry findings too; inline comments are not the whole round.
+gh api "repos/$R/pulls/$N/reviews" \
+  | jq -r --argjson b "$BASE_R" '.[] | select(.id > $b) | select((.body//"")!="")
+      | "REVIEW \(.id)\n\(.body)\n"'
+gh api "repos/$R/pulls/$N/comments" \
+  | jq -r --argjson b "$BASE_C" '.[] | select(.id > $b)
+      | "INLINE \(.id) \(.path):\(.line)\n\(.body)\n"'
+
+# 3. Clean only if a NEW verdict names the CURRENT head (body abbreviates to 10 chars)
+HEAD=$(gh api "repos/$R/pulls/$N" --jq .head.sha)
+gh api "repos/$R/issues/$N/comments" \
+  | jq -r --argjson b "$BASE_V" --arg h "${HEAD:0:10}" '
+      [ .[] | select(.id > $b)
+            | select(.user.login | test("codex";"i"))
+            | select(.body | contains($h))
+            | select(.body | test("find any major issues")) ] as $v
+      | if ($v|length) > 0 then "CLEAN for \($h)" else "not clean yet" end'
 ```
+
+Verified against real threads: the head-correlated check reports CLEAN on a PR whose
+verdict names that SHA and `not clean yet` on PRs with open findings.
 
 ## Working the findings
 
