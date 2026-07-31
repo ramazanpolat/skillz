@@ -109,36 +109,46 @@ Two traps make naive polling wrong, and both have bitten:
 So: **baseline the ids before re-requesting, and require the verdict to name the
 current head.** Comment ids increase monotonically, which is all the ordering needed.
 
+**Paginate.** These threads outgrow one page fast — a single campaign reached 32
+inline comments, past the default 30. And `--paginate --jq` runs the filter *per
+page*, so `[.[].id] | max` yields one maximum per page rather than one for the
+thread. `--slurp` aggregates, but it is rejected together with `--jq`, so slurp and
+pipe to a separate `jq`.
+
 ```bash
 R=OWNER/REPO N=42
+# every query below: --paginate --slurp, piped to jq. .[][] flattens page,item.
+api() { gh api --paginate --slurp "$1"; }
 
 # 1. BEFORE commenting "@codex review" — record where the thread stands
-BASE_C=$(gh api "repos/$R/pulls/$N/comments"  --jq '[.[].id] | max // 0')
-BASE_R=$(gh api "repos/$R/pulls/$N/reviews"   --jq '[.[].id] | max // 0')
-BASE_V=$(gh api "repos/$R/issues/$N/comments" --jq '[.[].id] | max // 0')
+BASE_C=$(api "repos/$R/pulls/$N/comments"  | jq '[.[][].id] | max // 0')
+BASE_R=$(api "repos/$R/pulls/$N/reviews"   | jq '[.[][].id] | max // 0')
+BASE_V=$(api "repos/$R/issues/$N/comments" | jq '[.[][].id] | max // 0')
 
 # 2. AFTER the review lands — findings from BOTH endpoints, only the new ones.
 #    Review bodies carry findings too; inline comments are not the whole round.
-gh api "repos/$R/pulls/$N/reviews" \
-  | jq -r --argjson b "$BASE_R" '.[] | select(.id > $b) | select((.body//"")!="")
+api "repos/$R/pulls/$N/reviews" \
+  | jq -r --argjson b "$BASE_R" '.[][] | select(.id > $b) | select((.body//"")!="")
       | "REVIEW \(.id)\n\(.body)\n"'
-gh api "repos/$R/pulls/$N/comments" \
-  | jq -r --argjson b "$BASE_C" '.[] | select(.id > $b)
+api "repos/$R/pulls/$N/comments" \
+  | jq -r --argjson b "$BASE_C" '.[][] | select(.id > $b)
       | "INLINE \(.id) \(.path):\(.line)\n\(.body)\n"'
 
 # 3. Clean only if a NEW verdict names the CURRENT head (body abbreviates to 10 chars)
 HEAD=$(gh api "repos/$R/pulls/$N" --jq .head.sha)
-gh api "repos/$R/issues/$N/comments" \
+api "repos/$R/issues/$N/comments" \
   | jq -r --argjson b "$BASE_V" --arg h "${HEAD:0:10}" '
-      [ .[] | select(.id > $b)
-            | select(.user.login | test("codex";"i"))
-            | select(.body | contains($h))
-            | select(.body | test("find any major issues")) ] as $v
+      [ .[][] | select(.id > $b)
+              | select(.user.login | test("codex";"i"))
+              | select(.body | contains($h))
+              | select(.body | test("find any major issues")) ] as $v
       | if ($v|length) > 0 then "CLEAN for \($h)" else "not clean yet" end'
 ```
 
 Verified against real threads: the head-correlated check reports CLEAN on a PR whose
-verdict names that SHA and `not clean yet` on PRs with open findings.
+verdict names that SHA and `not clean yet` on PRs with open findings; and with
+pagination forced (`?per_page=2`), the slurped form returns one maximum where the
+`--jq` form returned six.
 
 ## Working the findings
 
@@ -165,9 +175,19 @@ artifact with the remainder tracked is often the better call.
 
 ## Prerequisites
 
-- The **Codex GitHub app** (`chatgpt-codex-connector`) installed on the org or user
-  account. Verify:
-  `gh api /orgs/ORG/installations --jq '.installations[].app_slug'`
+- The **Codex GitHub app** (`chatgpt-codex-connector`) installed on the account that
+  owns the repo.
+
+  There is no single command that confirms this for every account type, so do not
+  treat a failed query as "not installed":
+
+  - **Org repo, and you hold `admin:org`** — this works:
+    `gh api /orgs/ORG/installations --jq '.installations[].app_slug'`
+  - **Personal repo, or no `admin:org`** — it does not. The org endpoint returns 404
+    for a user account, and `/user/installations` returns 403 for a normal `gh` token
+    ("must authenticate with an access token authorized to a GitHub App"). Check
+    `github.com/settings/installations` in a browser, or simply open the PR, request
+    the review, and see whether the app answers within a few minutes.
 - Use the app, not the local CLI. `codex exec` buffers its output and has produced
   nothing in 45 minutes where the app answered the same question in about two.
 - Work on a branch in its own worktree; never commit to the default branch directly.
