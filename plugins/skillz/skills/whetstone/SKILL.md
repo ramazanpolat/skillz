@@ -56,7 +56,7 @@ open PR ──> @codex review ──> fix ALL findings ──> re-request
 7. **Repeat** until a round returns clean.
 8. **Merge**, remove the worktree, delete the branch.
 
-The ordering in steps 1 and 5 is the whole trick: **a baseline is only valid if it is
+The ordering in steps 1 and 6 is the whole trick: **a baseline is only valid if it is
 taken before the request that it is meant to bound.** Take it after, and the round's
 own ids land inside the baseline and are then filtered out by `id > $b` — the loop
 waits forever for findings that already arrived.
@@ -155,12 +155,17 @@ api "repos/$R/pulls/$N/comments" \
   | jq -r --argjson b "$BASE_C" '.[][] | select(.id > $b)
       | "INLINE \(.id) \(.path):\(.line // .original_line // "?")\n\(.body)\n"'
 
-# 3. Clean only if a NEW verdict names the CURRENT head (body abbreviates to 10 chars)
+# 3. Clean only if a NEW verdict from the APP names the CURRENT head.
+#    Identify by performed_via_github_app.slug, never by a login substring: on a
+#    public PR anyone can be called *codex* and post the SHA plus the magic phrase,
+#    and a substring match would hand them your merge criterion. That field is
+#    stamped by GitHub when an app posts, so a human commenter cannot forge it.
+#    (The body abbreviates the SHA to 10 characters.)
 HEAD=$(gh api "repos/$R/pulls/$N" --jq .head.sha)
 api "repos/$R/issues/$N/comments" \
   | jq -r --argjson b "$BASE_V" --arg h "${HEAD:0:10}" '
       [ .[][] | select(.id > $b)
-              | select(.user.login | test("codex";"i"))
+              | select(.performed_via_github_app.slug == "chatgpt-codex-connector")
               | select(.body | contains($h))
               | select(.body | test("find any major issues")) ] as $v
       | if ($v|length) > 0 then "CLEAN for \($h)" else "not clean yet" end'
