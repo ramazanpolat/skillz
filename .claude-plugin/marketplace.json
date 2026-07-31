@@ -13,7 +13,7 @@
     {
       "name": "skillz",
       "source": "./plugins/skillz",
-      "description": "A growing bundle of personal Claude Code skills. Currently: file-transfer (push/pull files to the macminim Mac mini over passwordless SSH), croc (peer-to-peer end-to-end-encrypted file/text transfer between any two computers via a code phrase, no SSH needed), claude-ai-archive (import/sync a claude.ai data export into a local on-disk mirror), sprite (Sprite VM environment agent), sprite-api-gateway (authenticated external API access from a Sprite), test-on-sprite (test a repo in a disposable Sprite VM via herdr panes), and herdr (modified fork of herdr's AGPL-3.0 agent skill with corrected pane self-identification)."
+      "description": "A growing bundle of personal Claude Code skills. Currently: file-transfer (push/pull files to the macminim Mac mini over passwordless SSH), croc (peer-to-peer end-to-end-encrypted file/text transfer between any two computers via a code phrase, no SSH needed), claude-ai-archive (import/sync a claude.ai data export into a local on-disk mirror), sprite (Sprite VM environment agent), sprite-api-gateway (authenticated external API access from a Sprite), test-on-sprite (test a repo in a disposable Sprite VM via herdr panes), herdr (modified fork of herdr's AGPL-3.0 agent skill with corrected pane self-identification), and whetstone (adversarial cross-agent review loop: PR, Codex review, fix every finding, repeat until a round returns clean, then merge)."
     }
   ]
 }

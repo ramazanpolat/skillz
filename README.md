@@ -47,6 +47,7 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`sprite-api-gateway`](plugins/skillz/skills/sprite-api-gateway/SKILL.md) | Access external APIs (GitHub, Slack, Linear, …) from a Sprite through the authenticated `api.sprites.dev` gateway — no raw API keys. |
 | [`test-on-sprite`](plugins/skillz/skills/test-on-sprite/SKILL.md) | Test a repo in a disposable Sprite VM: provision a sprite per target, authenticate Claude + GitHub, checkpoint a reset point, then clone at a branch and run install/tests — driven through a live herdr console pane. |
 | [`herdr`](plugins/skillz/skills/herdr/SKILL.md) | Control herdr (terminal-native agent multiplexer) from inside it. **Modified fork** of herdr's own skill (AGPL-3.0) with corrected pane self-identification. See [License](#license). |
+| [`whetstone`](plugins/skillz/skills/whetstone/SKILL.md) | Adversarial cross-agent review loop: open a PR, have Codex review it, fix **every** finding, re-request, repeat — and merge only on a round that returns clean. |
 
 ### file-transfer
 
@@ -156,6 +157,36 @@ workspaces and tabs. Active when `HERDR_ENV=1`.
 > **AGPL-3.0-or-later**; this modified copy is redistributed under the same
 > license with attribution — which is why this whole repo is AGPL (see
 > [License](#license)). Upstream: https://github.com/ogulcancelik/herdr.
+
+### whetstone
+
+A development model, not a tool: **sharpen a change against a second agent until no
+burr remains.** Open a PR, have Codex review it, fix *every* finding, re-request the
+review, and repeat — merging only on a round that returns **zero findings on the
+current head commit**. "Looks fine" is not the criterion.
+
+```text
+open PR ──> @codex review ──> fix ALL findings ──> re-request
+                ^                                       |
+                └──────────── not clean ────────────────┘
+                                  |
+                                clean
+                                  v
+                                merge
+```
+
+The value is that the reviewer is not the author. In the campaign this skill was
+distilled from — 20 rounds, 32 findings, every one a real defect — six rounds found
+defects *in the fix written for the previous round*, and one found an error being
+swallowed by code written to stop swallowing errors. Nearly every finding was in
+something the author had just convinced themselves was correct.
+
+The skill covers the parts that are easy to get wrong: writing wrong-claim criteria
+into the PR body so the review has something to aim at, verifying a fix by
+reproducing the failure first and testing both directions, and the fact that findings
+arrive as PR *reviews* while the clean verdict arrives as a plain *issue* comment — so
+a watcher looking only at reviews times out on success and looks like nothing
+happened.
 
 ---
 
