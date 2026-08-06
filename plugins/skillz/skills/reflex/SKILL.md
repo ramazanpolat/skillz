@@ -1,6 +1,6 @@
 ---
 name: reflex
-description: "Standing \"whenever X happens, do Y\" instructions that fire on their own in later sessions. Use when the user wants something to happen automatically from now on — \"whenever I mention X, log it\", \"whenever a session starts, tell me my counts\", \"whenever the same error shows up a third time, open a TODO\", \"remind me to X every time Y\" — and for managing those entries: list, pause, resume, remove, or record that one fired. Also use when the user says reflex, standing instruction, or standing rule. A reflex is condition-triggered, unlike a cron (time-triggered) or a hook (tool-event-triggered, exact, configured in settings.json)."
+description: "Standing \"whenever X happens, do Y\" instructions that fire on their own in later sessions. Use when the user wants something to happen automatically from now on — \"whenever I mention X, log it\", \"whenever a session starts, tell me my counts\", \"whenever the same error shows up a third time, open a TODO\", \"from now on, always X\" — and for managing those entries: list, pause, resume, remove, or record that one fired. Not for a one-off reminder in the current conversation — a reflex is permanent and costs prompt tokens in every later session. Also use when the user says reflex, standing instruction, or standing rule. A reflex is condition-triggered, unlike a cron (time-triggered) or a hook (tool-event-triggered, exact, configured in settings.json)."
 ---
 
 # reflex
@@ -20,10 +20,14 @@ description is. So a skill alone cannot make a reflex fire: nothing would be
 watching. What makes this work is a file the user's `CLAUDE.md` imports, so the
 entries are in the prompt from the first turn of every session.
 
-`@` imports resolve **one literal filename**. Directories and globs import
-nothing, silently — `@dir/` and `@dir/*.md` both fail, while `@dir/one.md`
-works. So all entries live in one file, `REFLEXES.md`, and there is no compile
-step, no per-entry file, and nothing to generate.
+`@` imports resolve **one literal filename**. `@dir/one.md` works; `@dir/` and
+`@dir/*.md` bring in no content. So all entries live in one file, `REFLEXES.md`,
+and there is no compile step, no per-entry file, and nothing to generate.
+
+(Importing a *missing* file fails differently, and worse: the import is not
+dropped, the raw `@REFLEXES.md` line is left sitting in the prompt where it reads
+as a missing instruction set. Hence the rule below about never adding the import
+without creating the file.)
 
 Nested imports do work (verified three levels deep), so `REFLEXES.md` can be
 reached through an intermediate file if a setup already has one.
@@ -38,14 +42,20 @@ echo "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
 Anyone running more than one Claude Code configuration side by side sets
 `CLAUDE_CONFIG_DIR`, and writing to `~/.claude` there puts the reflexes in a
-directory that session never reads. Run the command; use what it prints.
+directory that session never reads. Run the command; use what it prints. If it
+prints a relative path, resolve it to an absolute one first — otherwise
+`REFLEXES.md` lands under whatever directory that one session started in.
 
 Then, with `<config>` as that path:
 
 1. If `<config>/REFLEXES.md` does not exist, create it with the **Standing
    header** below.
-2. If `<config>/CLAUDE.md` does not already import it, append `@REFLEXES.md` on
-   its own line. Create `CLAUDE.md` if absent.
+2. If `<config>/CLAUDE.md` does not already import it, add `@REFLEXES.md` on a
+   line of its own. Create `CLAUDE.md` if absent. **Check whether the file ends
+   in a newline first** — plenty of editors save without one, and a blind
+   `>>` append then produces `Always be terse.@REFLEXES.md`, which corrupts the
+   user's last line *and* kills the import, since `@` must begin the line. Read
+   the file and write it back rather than appending blind.
 
 Never add the import without creating the file. An unresolvable `@` import is
 not silently dropped — the raw `@REFLEXES.md` line is left sitting in the system
@@ -57,6 +67,12 @@ user's approval, and it can be refused.** Do the two steps in this order —
 file rather than a dangling import. If either write is denied, say plainly that
 reflexes cannot fire without the import, and offer to print both pieces for the
 user to paste in themselves.
+
+**Re-check both halves on every run, not only the first.** If the `CLAUDE.md`
+edit was refused once, `REFLEXES.md` still exists — so a later run sees the file,
+concludes setup is done, and writes entries that can never fire, silently.
+Confirm the file exists *and* that `CLAUDE.md` imports it before drafting
+anything, and repair whichever half is missing.
 
 Tell the user, in one line, that entries take effect from the **next** session:
 `CLAUDE.md` is assembled at startup, so an entry added mid-session is not in the
@@ -127,8 +143,12 @@ and add or remove that one word.
 
 ## Routing
 
-Parse the first word of the request. Every branch is a Read plus an Edit of
-`REFLEXES.md`; never shell out.
+Find the **intent word** — `list`, `all`, `add`, `pause`, `resume`, `remove`,
+`fired` — rather than reading only the first word. Requests arrive as "reflex
+pause log-errors" or "please list my reflexes", and taking word one literally
+turns both into a request to *create* a reflex named after the command. Skip a
+leading `reflex` and any politeness, then match. Every branch is a Read plus an
+Edit of `REFLEXES.md`; never shell out.
 
 **Nothing, or "list"** — list active entries: name, mode, title, `**Log:**`.
 Mention paused ones only if any exist.
@@ -184,7 +204,7 @@ the draft and get confirmation before writing.
    - a path **inside the directory the user works in** — always writable, but
      per-project;
    - a path under the config dir or `$HOME` — one place for everything, but it
-     needs a permission rule (`"Write(//Users/you/**)"` in `settings.json`
+     needs a permission rule (`"Write(/Users/you/**)"` in `settings.json`
      `permissions.allow`, or running with a permissive mode) or it will be
      denied;
    - **no file at all** — the Response just reports in the reply, which needs no
@@ -198,10 +218,12 @@ the draft and get confirmation before writing.
   a placeholder, mark the heading `[paused]`.
 - Two sessions editing `REFLEXES.md` at once can clobber each other — Edit is
   read-modify-write with no lock. Re-Read immediately before editing.
-- The disclosure line in rule 3 is convention and drifts in practice: entries
-  have been observed firing and doing the work while reporting only the outcome.
-  The Response's own written output is the dependable evidence, not the
-  announcement and not the `**Log:**` counter.
+- Rule 3 asks for the disclosure line, and rightly: naming the reflex is how the
+  user sees that unrequested work happened. But it drifts — entries have been
+  observed firing and doing the work while reporting only the outcome. So ask for
+  it and do not *depend* on it: to check whether a reflex is working, read what
+  its Response wrote, never the announcement and never the `**Log:**` counter,
+  which is a convenience for the user rather than evidence.
 - Keep the set small. Every entry is in context forever; past a dozen, pause or
   prune rather than accumulate.
 - **Kommander users:** that playbook ships its own `reflex` skill wired to
