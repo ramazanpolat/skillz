@@ -49,7 +49,11 @@ prints a relative path, resolve it to an absolute one first — otherwise
 Then, with `<config>` as that path:
 
 1. If `<config>/REFLEXES.md` does not exist, create it with the **Standing
-   header** below.
+   header** below. If it exists but has no `## Firing rules` section, insert the
+   header above its entries — a file can arrive from elsewhere (a migration, a
+   colleague, an older setup) carrying entries and no rules, and entries without
+   rules never fire. Nothing in the file says so, and nothing errors: the reflexes
+   are simply inert, which is the hardest failure to notice.
 2. If `<config>/CLAUDE.md` does not already import it, add `@REFLEXES.md` on a
    line of its own. Create `CLAUDE.md` if absent. **Check whether the file ends
    in a newline first** — plenty of editors save without one, and a blind
