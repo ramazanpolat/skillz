@@ -37,3 +37,9 @@ under `skills/<name>/SKILL.md`.
   reproducing the failure first, and the reviews-vs-issue-comments split that makes
   a clean round look like silence. See
   [`skills/whetstone/SKILL.md`](skills/whetstone/SKILL.md).
+- **grilling** — interview the user relentlessly about a plan, decision, or idea:
+  map it as a design tree, ask each round's frontier of settled-prerequisite
+  questions with a recommended answer, and finish only once every branch is
+  visited. Imported unmodified from
+  [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). See
+  [`skills/grilling/SKILL.md`](skills/grilling/SKILL.md).

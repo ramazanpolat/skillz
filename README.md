@@ -48,6 +48,7 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`test-on-sprite`](plugins/skillz/skills/test-on-sprite/SKILL.md) | Test a repo in a disposable Sprite VM: provision a sprite per target, authenticate Claude + GitHub, checkpoint a reset point, then clone at a branch and run install/tests — driven through a live herdr console pane. |
 | [`herdr`](plugins/skillz/skills/herdr/SKILL.md) | Control herdr (terminal-native agent multiplexer) from inside it. **Modified fork** of herdr's own skill (AGPL-3.0) with corrected pane self-identification. See [License](#license). |
 | [`whetstone`](plugins/skillz/skills/whetstone/SKILL.md) | Adversarial cross-agent review loop: open a PR, have Codex review it, fix **every** finding, re-request, repeat — and merge only on a round that returns clean. |
+| [`grilling`](plugins/skillz/skills/grilling/SKILL.md) | Interview the user relentlessly about a plan, decision, or idea — round-by-round design-tree questioning — to stress-test their thinking before acting on it. Imported from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). |
 
 > **Two transfer skills — which fires?** Default is **`croc`**. **`file-transfer`**
 > takes over only when a **named passwordless-SSH host** (e.g. `macminim`) is
@@ -207,6 +208,20 @@ arrive as PR *reviews* while the clean verdict arrives as a plain *issue* commen
 a watcher looking only at reviews times out on success and looks like nothing
 happened.
 
+### grilling
+
+Stress-tests a plan, decision, or idea by interviewing the user round by round.
+Claude maps the problem as a **design tree** — every decision branches into the
+decisions that hang off it — and works the **frontier**: every question whose
+prerequisites are already settled, asked all at once with a recommended answer,
+never blocking on facts a sub-agent could look up instead. The session ends only
+when the frontier is empty — every branch visited, nothing silently assumed.
+
+Fires on "grill me on this," "stress-test this plan," or similar trigger phrases.
+
+> Imported as-is from [mattpocock/skills](https://github.com/mattpocock/skills),
+> licensed MIT. No modifications; see [License](#license).
+
 ---
 
 ## Repository layout
@@ -278,3 +293,8 @@ modifications are in [`NOTICE`](NOTICE).
 
 herdr is dual-licensed (AGPL or commercial); the original project is at
 https://github.com/ogulcancelik/herdr. No warranty.
+
+This repository also bundles, unmodified, the `grilling` skill from
+[mattpocock/skills](https://github.com/mattpocock/skills)
+(`plugins/skillz/skills/grilling/`), Copyright (c) 2026 Matt Pocock, licensed
+MIT. MIT permits redistribution under AGPL-3.0-or-later; see [`NOTICE`](NOTICE).
