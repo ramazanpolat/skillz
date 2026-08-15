@@ -49,6 +49,7 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`herdr`](plugins/skillz/skills/herdr/SKILL.md) | Control herdr (terminal-native agent multiplexer) from inside it. **Modified fork** of herdr's own skill (AGPL-3.0) with corrected pane self-identification. See [License](#license). |
 | [`whetstone`](plugins/skillz/skills/whetstone/SKILL.md) | Adversarial cross-agent review loop: open a PR, have Codex review it, fix **every** finding, re-request, repeat — and merge only on a round that returns clean. |
 | [`grilling`](plugins/skillz/skills/grilling/SKILL.md) | Interview the user relentlessly about a plan, decision, or idea — round-by-round design-tree questioning — to stress-test their thinking before acting on it. Imported from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). |
+| [`living-docs`](plugins/skillz/skills/living-docs/SKILL.md) | Keep a repo's living documents in the root and retire stale ones into `history/` — one accepted version per doc, drafts beside it, nothing deleted. Set up the convention, retire a superseded doc, promote a draft, or show what is live vs retired. |
 
 > **Two transfer skills — which fires?** Default is **`croc`**. **`file-transfer`**
 > takes over only when a **named passwordless-SSH host** (e.g. `macminim`) is
