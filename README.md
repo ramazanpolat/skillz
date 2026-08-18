@@ -50,6 +50,7 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`whetstone`](plugins/skillz/skills/whetstone/SKILL.md) | Adversarial cross-agent review loop: open a PR, have Codex review it, fix **every** finding, re-request, repeat — and merge only on a round that returns clean. |
 | [`grilling`](plugins/skillz/skills/grilling/SKILL.md) | Interview the user relentlessly about a plan, decision, or idea — round-by-round design-tree questioning — to stress-test their thinking before acting on it. Imported from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). |
 | [`sbx`](plugins/skillz/skills/sbx/SKILL.md) | Run an agent — or a plain shell — inside a [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) microVM (own kernel, filesystem, Docker daemon, deny-by-default network) via the `sbx` CLI: lifecycle, `--clone` workspaces, network policy, secrets, ports, templates, kits — plus [test-bench recipes](plugins/skillz/skills/sbx/references/test-arena.md) for using sandboxes as a disposable scenario harness. |
+| [`living-docs`](plugins/skillz/skills/living-docs/SKILL.md) | Keep a repo's living documents in the root and retire stale ones into `history/` — one accepted version per doc, drafts beside it, nothing deleted. Set up the convention, retire a superseded doc, promote a draft, or show what is live vs retired. |
 
 > **Two transfer skills — which fires?** Default is **`croc`**. **`file-transfer`**
 > takes over only when a **named passwordless-SSH host** (e.g. `macminim`) is
@@ -222,6 +223,27 @@ Fires on "grill me on this," "stress-test this plan," or similar trigger phrases
 
 > Imported as-is from [mattpocock/skills](https://github.com/mattpocock/skills),
 > licensed MIT. No modifications; see [License](#license).
+
+### living-docs
+
+A document-lifecycle convention for repos whose important documents evolve: **the
+root holds what is true now, `history/` holds what used to be true.** Exactly one
+accepted version of each document lives in the root, drafts sit *beside* it
+rather than on top of it, and superseded versions are moved aside — never
+deleted, because a retired document is a browsable record of why a decision was
+made while a deleted one is buried in history nobody reads.
+
+Two rules carry most of the weight: a current version **never refers back** to
+what it replaced (no "supersedes v2", no changelog paragraph — that story belongs
+in the commit message), and `history/` is **read-only**, never repointed or
+corrected, since its whole value is being accurate about what was believed at the
+time.
+
+Performs four operations — `init` (create `history/`, add the convention block to
+the repo's `CLAUDE.md`), `retire` (`git mv` a superseded doc, then repoint the
+live documents that referenced it), `accept` (promote a draft, retire what it
+replaces), and `status` (what is live vs retired). Document-type agnostic:
+`DESIGN.md`, `SPEC-v*.md`, `RFC-*.md`, `PLAN-*.md`.
 
 ### sbx
 

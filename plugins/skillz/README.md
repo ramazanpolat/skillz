@@ -43,6 +43,12 @@ under `skills/<name>/SKILL.md`.
   visited. Imported unmodified from
   [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). See
   [`skills/grilling/SKILL.md`](skills/grilling/SKILL.md).
+- **living-docs** — keep a repo's living documents in the root and retire
+  superseded ones into `history/`: one accepted version per document, drafts
+  beside it rather than on top, a current version that never refers back to what
+  it replaced, and a read-only `history/`. Operations: `init`, `retire`,
+  `accept`, `status`. See
+  [`skills/living-docs/SKILL.md`](skills/living-docs/SKILL.md).
 - **sbx** — run an agent, or a plain shell, inside a Docker Sandboxes microVM
   (own kernel, filesystem, Docker daemon, deny-by-default network) via the `sbx`
   CLI: sandbox lifecycle, direct-vs-`--clone` workspaces, network policy presets
