@@ -47,4 +47,8 @@ under `skills/<name>/SKILL.md`.
   (own kernel, filesystem, Docker daemon, deny-by-default network) via the `sbx`
   CLI: sandbox lifecycle, direct-vs-`--clone` workspaces, network policy presets
   and rules, host-side secret injection, ports, `cp`, templates, kits, and MCP.
-  See [`skills/sbx/SKILL.md`](skills/sbx/SKILL.md).
+  See [`skills/sbx/SKILL.md`](skills/sbx/SKILL.md), plus
+  [`skills/sbx/references/test-arena.md`](skills/sbx/references/test-arena.md) —
+  worked recipes for using sandboxes as disposable test benches (headless CI,
+  oracle runs, pty-driven agents, chaos by network denial, nested compose in the
+  bench's own Docker daemon, and an executable credential-isolation test).

@@ -1,6 +1,6 @@
 ---
 name: sbx
-description: "Run an AI coding agent — or a plain shell — inside an isolated Docker Sandbox microVM with its own kernel, filesystem, Docker daemon, and deny-by-default network, using the `sbx` CLI. Use whenever the user wants to run something risky, untrusted, or destructive away from the host: try a random install script, let an agent work unsupervised, build/test an unknown repo, reproduce a bug in a clean box, or run a second agent in parallel. Also use for anything naming sbx or Docker Sandboxes — sandbox lifecycle (run, create, ls, exec, stop, rm), workspace and --clone mode, network policy (allow/deny/presets), secrets, published ports, file copy, MCP servers, templates, and kits. Not for the sprite skills (sprites.dev VMs) and not for plain `docker run` containers, which share the host kernel and daemon."
+description: "Run an AI coding agent — or a plain shell — inside an isolated Docker Sandbox microVM with its own kernel, filesystem, Docker daemon, and deny-by-default network, using the `sbx` CLI. Use whenever the user wants to run something risky, untrusted, or destructive away from the host: try a random install script, let an agent work unsupervised, build/test an unknown repo, reproduce a bug in a clean box, or run a second agent in parallel. Also use for anything naming sbx or Docker Sandboxes — sandbox lifecycle, workspace and --clone mode, network policy, secrets, ports, file copy, MCP, templates, and kits. Also use when building a test or simulation harness on sandboxes — disposable per-scenario benches, headless CI runs, parallel matrices, chaos via network denial, and executable credential-isolation tests. Not for the sprite skills (sprites.dev VMs), nor for plain `docker run` containers."
 ---
 
 # sbx — Docker Sandboxes
@@ -11,6 +11,11 @@ build images, and run untrusted code without touching the host. Only what you
 explicitly mount and what network policy explicitly allows crosses the boundary.
 
 The CLI is free, including commercial use. Only org-wide governance is paid.
+
+For scripted, disposable **test benches** — scenario harnesses, CI matrices,
+chaos and credential-isolation suites — read
+[`references/test-arena.md`](references/test-arena.md): full worked scripts for
+every feature below, placed where they belong in a scenario.
 
 ## Reach for this when
 
@@ -39,7 +44,10 @@ sbx ls               # signed in? errors with "Not authenticated to Docker" if n
   Ubuntu 24.04+ with KVM and the user in the `kvm` group.
 - Not signed in — `sbx login` is **interactive** (browser). Don't run it blind
   from a tool call: tell the user to run `sbx login` themselves, e.g. by typing
-  `! sbx login`. Non-interactive form is `sbx login --username <u> --password-stdin`.
+  `! sbx login`. For CI and headless runners, authenticate with a Docker PAT:
+  `printf '%s' "$DOCKER_PAT" | sbx login --username "$DOCKER_ID" --password-stdin`,
+  then `sbx policy init balanced` so the first sandbox doesn't block on the
+  interactive network-preset prompt.
 - Daemon trouble — `sbx daemon status`, `sbx daemon restart`, then `sbx diagnose`.
 
 ## Core loop
@@ -57,14 +65,20 @@ sbx rm my-box                        # delete sandbox and everything in it
 ```
 
 Agents: `claude`, `codex`, `copilot`, `cursor`, `docker-agent`, `droid`,
-`gemini`, `kiro`, `opencode`, `shell`. `shell` is the agent-less sandbox — the
-right pick for "just run this untrusted thing somewhere safe".
+`gemini`, `kiro`, `opencode`, `shell`. `shell` is the agent-less sandbox (a bash
+login shell, no agent binary) — the right pick for "just run this untrusted thing
+somewhere safe" and for scripted one-shots.
 
 Pass agent arguments after `--`:
 
 ```bash
-sbx run claude -- --continue
+sbx run claude -- --continue                  # resume a session
+sbx run claude -- -p "summarize this repo"    # non-interactive prompt
+sbx run shell -- -c 'make test'               # one-shot command, exits when done
 ```
+
+For `shell`, args after `--` that start with a flag are appended to `bash -l`;
+bare words replace `-l` entirely.
 
 Default name is `<agent>-<workdir>`. `sbx exec` starts a stopped sandbox first,
 and its flags mirror `docker exec` (`-i`, `-t`, `-d`, `-u`, `-w`, `-e`,
@@ -81,6 +95,14 @@ edits are live on the host, same as if it ran locally.
 
 ```bash
 sbx run claude ~/project-a ~/shared-libs:ro ~/docs:ro   # extra mounts, :ro = read-only
+```
+
+Workspaces mount **at the same absolute path they have on the host**, so paths in
+scripts and configs keep working. A middle option between direct and clone is a
+host git worktree — isolated branch, still live on the host:
+
+```bash
+git worktree add -b feat/x ../x-work && sbx run claude ../x-work
 ```
 
 **Clone (`--clone`)** — the host repo is mounted read-only and the agent works on
@@ -171,8 +193,17 @@ sbx run --deny-network telemetry.example.com claude
 Under org governance only **org** allow rules grant access; local allow rules go
 inactive (visible via `--include-inactive`), while local deny rules still apply.
 
+Services on the **host** are reachable as `host.docker.internal`, and that reach
+is policy-checked like anything else — allow it explicitly:
+
+```bash
+sbx policy allow network localhost:11434
+sbx exec my-box curl -fsS http://host.docker.internal:11434/api/tags
+```
+
 **When an agent inside a sandbox fails to reach something, check policy before
-debugging the tool.** `sbx policy check network <host>` answers it in one call.
+debugging the tool.** `sbx policy check network <host>` answers it in one call,
+and `sbx policy log` shows what was actually blocked.
 
 ## Secrets
 
@@ -195,27 +226,134 @@ token stays on the host.
 Never paste a raw key into a sandbox shell or a file in the workspace — that
 defeats the proxy injection and puts the credential inside the VM.
 
-## Extras
+Per-launch injection without storing anything, e.g. from 1Password:
 
 ```bash
-sbx mcp ls | add | inspect | load | auth | rm      # MCP servers, brokered by a host-side gateway
-sbx run --static-mcp notion,atlassian claude       # fixed MCP set, creation-time only
-sbx template save | ls | rm | load                 # snapshot a sandbox as a reusable image
-sbx run -t <tag> claude                            # start from that template
-sbx kit add | pack | push | pull | inspect | validate   # (experimental) declarative YAML extensions
-sbx run --kit ./my-kit claude
-sbx skills import                                  # (experimental) share host agent skills into sandboxes
-sbx setup                                          # (experimental) detect host config, import env secrets
-sbx setup ssh                                      # SSH config, for VS Code / Cursor attach
-sbx settings list | get | set | unset              # daemon-owned persistent settings
-sbx tui                                            # interactive dashboard
+ANTHROPIC_API_KEY="op://Work/Anthropic/credential" op run -- sbx run claude
 ```
 
+The host **SSH agent is forwarded into sandboxes**, so an agent inside can sign
+commits with the host key (`git config --global gpg.format ssh`). That is a
+convenience and an exposure — for an untrusted workload, check `SSH_AUTH_SOCK`
+inside the sandbox and decide deliberately.
+
+## Templates — pre-warmed sandboxes
+
+Snapshot a sandbox once, start every later one from it:
+
+```bash
+sbx create --name builder shell .
+sbx exec builder bash -lc 'apt-get update && apt-get install -y jq sqlite3'
+sbx template save builder my-bench:v1          # snapshot -> reusable image
+sbx rm --force builder
+sbx run -t my-bench:v1 shell .                 # start from it
+sbx template ls | rm my-bench:v1
+```
+
+Version-controlled alternative — a Dockerfile on the published base image:
+
+```dockerfile
+FROM docker/sandbox-templates:claude-code
+USER root
+RUN apt-get update && apt-get install -y protobuf-compiler
+USER agent
+```
+
+Move it between machines, or pull from a private registry:
+
+```bash
+sbx template save builder my-bench:v1 --output my-bench-v1.tar
+sbx template load my-bench-v1.tar
+gh auth token | sbx secret set --registry ghcr.io --password-stdin
+sbx run -t ghcr.io/myorg/my-bench:v1 claude
+```
+
+The template's agent must match the agent it is started with, agent config files
+are recreated on every creation (user settings don't survive into a template),
+and a secret baked into a template ships to everyone who gets the image — use
+`sbx secret set` instead.
+
+## Kits — declarative sandbox extension
+
+A kit is a versioned YAML spec (plus optional files) that adds env vars, install
+and startup commands, files, network rules, and proxy-managed credentials.
+Perfect for "this project's sandbox needs X", checked in beside the code.
+
+`my-kit/spec.yaml`:
+
+```yaml
+kind: mixin
+environment:
+  variables:
+    MY_TOOL_HOME: /home/agent/.my-tool
+setup:
+  install:
+    - command: "apt-get update && apt-get install -y jq"
+  startup:
+    - command: ["my-daemon"]
+      background: true
+  files:
+    - path: /home/agent/.my-tool/config.json
+      content: '{"workspace": "${WORKDIR}"}'
+      onlyIfMissing: true
+permissions:
+  network:
+    allow: ["api.example.com", "*.cdn.example.com"]
+    deny:  ["telemetry.example.com"]
+credentials:
+  - service: my-service
+    apiKey:
+      name: MY_SERVICE_API_KEY
+      proxyManaged: true
+      inject:
+        - domain: api.example.com
+          header: Authorization
+          format: "Bearer %s"
+agentInstructions:
+  content: |
+    jq is installed. Config lives at ~/.my-tool/config.json.
+```
+
+```bash
+sbx kit validate ./my-kit
+sbx kit inspect ./my-kit --json
+sbx run claude --kit ./my-kit --kit ./another-kit        # kits stack
+sbx kit add my-box ./my-kit                              # mixin into a running sandbox
+sbx kit pack ./my-kit -o my-kit-1.0.zip
+sbx kit push ./my-kit ghcr.io/myorg/my-kit:1.0
+sbx run claude --kit ghcr.io/myorg/my-kit:1.0
+sbx run claude --kit "git+https://github.com/docker/sbx-kits-contrib.git#ref=v0.1.0&dir=code-server"
+```
+
+`install` runs once at creation as root; `startup` runs on every start and must
+be idempotent. Never override `HTTP_PROXY` / `HTTPS_PROXY` from a kit — sbx owns
+them, and policy plus credential injection ride on them. Only `docker.io/` kit
+sources are allowed by default (`kit.allowedSources` setting widens it).
+
+## MCP, skills, settings
+
+```bash
+sbx mcp add <name> ... ; sbx mcp ls ; sbx mcp inspect <name> ; sbx mcp auth <name>
+sbx run --static-mcp notion,atlassian claude    # fixed MCP set, creation-time only
+sbx mcp load <name> my-box                      # push a registered server into a running sandbox
+
+sbx skills import --dry-run                     # (experimental) share host agent skills
+sbx skills import --force
+sbx create --no-share-skills claude .           # opt out (documented; hidden from --help in v0.38.0)
+
+sbx settings list | get <key> | set <key> <value> | unset <key>
+sbx setup            # (experimental) detect host config, import env secrets
+sbx setup ssh        # SSH config, for VS Code / Cursor attach over SSH
+sbx tui              # interactive dashboard
+```
+
+The skills store is mounted **read-write**, so a sandbox can write skills a later
+sandbox executes — `--no-share-skills` for anything untrusted.
+
 `~/.claude` and other user-level agent config stay on the host; project-level
-config is visible inside. Use `sbx skills import` to share skills.
-Per-sandbox env vars that nothing else covers go in `/etc/sandbox-persistent.sh`
-inside the sandbox — read only by shells started **after** the edit, and bypassed
-by `sbx exec` unless wrapped in `bash -c`.
+config is visible inside. Env vars nothing else covers go in
+`/etc/sandbox-persistent.sh` inside the sandbox — read only by shells started
+**after** the edit, and bypassed by `sbx exec` unless wrapped in `bash -lc`.
 
 ## Gotchas
 
@@ -228,6 +366,11 @@ by `sbx exec` unless wrapped in `bash -c`.
 - Deep `sbx` calls fail with `ERROR: Not authenticated to Docker` before doing
   anything. Check `sbx ls` first rather than misreading it as a real failure.
 - `sbx logout` stops **all** running sandboxes.
+- `sbx exec CMD` does not run a login shell: no `/etc/sandbox-persistent.sh`, no
+  profile. Wrap it — `sbx exec my-box bash -lc '...'` — or the environment
+  differs from the one the agent saw.
+- `sbx exec -it` allocates a pty; if a TUI eats the detach sequence, set an
+  unused one with `--detach-keys`.
 - Telemetry opt-out: `SBX_NO_TELEMETRY=1`.
 
 > **Warning:** `sbx reset` is destructive and irreversible — it terminates every
@@ -243,4 +386,8 @@ by `sbx exec` unless wrapped in `bash -c`.
 - Install: https://docs.docker.com/ai/sandboxes/install/
 - Security model: https://docs.docker.com/ai/sandboxes/security/
 - Local policy: https://docs.docker.com/ai/sandboxes/security/policy/
+- Workflow patterns: https://docs.docker.com/ai/sandboxes/workflows/
+- Kits: https://docs.docker.com/ai/sandboxes/customize/kits/
+- Templates: https://docs.docker.com/ai/sandboxes/customize/templates/
 - FAQ: https://docs.docker.com/ai/sandboxes/faq/
+- Test-bench recipes (this skill): [`references/test-arena.md`](references/test-arena.md)
