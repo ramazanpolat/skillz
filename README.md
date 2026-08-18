@@ -49,6 +49,7 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`herdr`](plugins/skillz/skills/herdr/SKILL.md) | Control herdr (terminal-native agent multiplexer) from inside it. **Modified fork** of herdr's own skill (AGPL-3.0) with corrected pane self-identification. See [License](#license). |
 | [`whetstone`](plugins/skillz/skills/whetstone/SKILL.md) | Adversarial cross-agent review loop: open a PR, have Codex review it, fix **every** finding, re-request, repeat — and merge only on a round that returns clean. |
 | [`grilling`](plugins/skillz/skills/grilling/SKILL.md) | Interview the user relentlessly about a plan, decision, or idea — round-by-round design-tree questioning — to stress-test their thinking before acting on it. Imported from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). |
+| [`sbx`](plugins/skillz/skills/sbx/SKILL.md) | Run an agent — or a plain shell — inside a [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) microVM (own kernel, filesystem, Docker daemon, deny-by-default network) via the `sbx` CLI: lifecycle, `--clone` workspaces, network policy, secrets, ports, templates, kits. |
 
 > **Two transfer skills — which fires?** Default is **`croc`**. **`file-transfer`**
 > takes over only when a **named passwordless-SSH host** (e.g. `macminim`) is
@@ -221,6 +222,23 @@ Fires on "grill me on this," "stress-test this plan," or similar trigger phrases
 
 > Imported as-is from [mattpocock/skills](https://github.com/mattpocock/skills),
 > licensed MIT. No modifications; see [License](#license).
+
+### sbx
+
+Wraps the [`sbx`](https://docs.docker.com/reference/cli/sbx/) CLI — Docker
+Sandboxes — so untrusted or destructive work runs in a **microVM** instead of on
+the host: separate kernel, own filesystem, own Docker daemon, deny-by-default
+egress proxied through the host. Covers the lifecycle (`run` / `create` / `ls` /
+`exec` / `stop` / `rm`), the direct-vs-`--clone` workspace choice and the
+`sandbox-<name>` git remote clone mode leaves behind, network policy presets and
+per-sandbox allow/deny rules, host-side secret injection (the raw key never
+enters the VM), published ports, `cp`, templates, kits, and MCP.
+
+The parts that actually bite are called out: creation-time-only flags that are
+silently ignored on re-attach, `sbx policy check network <host>` before debugging
+a "broken" tool inside the sandbox, direct mode not protecting the host from git
+hooks and `package.json` scripts it later runs itself, and `sbx reset` being a
+sign-you-out, delete-everything button.
 
 ---
 
