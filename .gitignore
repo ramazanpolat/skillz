@@ -1,1 +1,5 @@
 .DS_Store
+
+# Local, machine-specific skill config — never commit (test-on-sprite et al.)
+config.local.*
+*.local.json

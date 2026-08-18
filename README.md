@@ -47,6 +47,7 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`sprite-api-gateway`](plugins/skillz/skills/sprite-api-gateway/SKILL.md) | Access external APIs (GitHub, Slack, Linear, …) from a Sprite through the authenticated `api.sprites.dev` gateway — no raw API keys. |
 | [`test-on-sprite`](plugins/skillz/skills/test-on-sprite/SKILL.md) | Test a repo in a disposable Sprite VM: provision a sprite per target, authenticate Claude + GitHub, checkpoint a reset point, then clone at a branch and run install/tests — driven through a live herdr console pane. |
 | [`herdr`](plugins/skillz/skills/herdr/SKILL.md) | Control herdr (terminal-native agent multiplexer) from inside it. **Modified fork** of herdr's own skill (AGPL-3.0) with corrected pane self-identification. See [License](#license). |
+| [`reflex`](plugins/skillz/skills/reflex/SKILL.md) | Standing "whenever X happens, do Y" instructions that fire on their own in later sessions — model-evaluated entries kept in a `REFLEXES.md` that `CLAUDE.md` imports, so they are in the prompt from the first turn. |
 | [`whetstone`](plugins/skillz/skills/whetstone/SKILL.md) | Adversarial cross-agent review loop: open a PR, have Codex review it, fix **every** finding, re-request, repeat — and merge only on a round that returns clean. |
 | [`grilling`](plugins/skillz/skills/grilling/SKILL.md) | Interview the user relentlessly about a plan, decision, or idea — round-by-round design-tree questioning — to stress-test their thinking before acting on it. Imported from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). |
 | [`sbx`](plugins/skillz/skills/sbx/SKILL.md) | Run an agent — or a plain shell — inside a [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) microVM (own kernel, filesystem, Docker daemon, deny-by-default network) via the `sbx` CLI: lifecycle, `--clone` workspaces, network policy, secrets, ports, templates, kits — plus [test-bench recipes](plugins/skillz/skills/sbx/references/test-arena.md) for using sandboxes as a disposable scenario harness. |
@@ -179,6 +180,36 @@ workspaces and tabs. Active when `HERDR_ENV=1`.
 > **AGPL-3.0-or-later**; this modified copy is redistributed under the same
 > license with attribution — which is why this whole repo is AGPL (see
 > [License](#license)). Upstream: https://github.com/ogulcancelik/herdr.
+
+### test-on-sprite
+
+Runs a target repo's installer and suite inside a **Sprite VM** ([sprites.dev](https://sprites.dev/))
+rather than on the host, so an installer can rewrite `~/.zshrc` or a real config
+directory without consequence. Two phases: **provision** once per sprite (create,
+authenticate Claude, checkpoint, authenticate GitHub, checkpoint again — that
+second one is the *ready* reset point), then **test runs** that are fast and
+repeatable (restore ready, clone at a branch, install, test, capture a log).
+Interactive auth happens in a live herdr console pane. Machine and repo
+specifics live in a config outside any repo
+(`${XDG_CONFIG_HOME:-~/.config}/test-on-sprite/config.json`) — the skill and its
+`scripts/` stay generic, and `config.example.json` documents the shape.
+
+### reflex
+
+Standing "whenever X happens, do Y" instructions that fire on their own in later
+sessions. Reflexes are **model-evaluated** — nothing polls, nothing watches a
+file. Every active entry is imported into the system prompt and matched against
+what actually happens in the session.
+
+That import is the whole mechanism, and it is why a skill alone cannot do this: a
+skill's body is not in context until it is invoked, so nothing would be watching.
+Entries live in one `REFLEXES.md` that `CLAUDE.md` imports with `@` — one literal
+filename, because `@dir/` and `@dir/*.md` bring in no content — which is also why
+there is no compile step and no per-entry file. The skill covers the traps: the
+config directory must be resolved (`${CLAUDE_CONFIG_DIR:-$HOME/.claude}`), never
+assumed; the import must never be added before the file exists, or the raw
+`@REFLEXES.md` line sits in the prompt reading as a missing instruction set; and
+a `REFLEXES.md` that arrives with entries but no firing rules is silently inert.
 
 ### whetstone
 

@@ -1,0 +1,15 @@
+{
+  "_comment": "Real config is resolved on first use and written to ${XDG_CONFIG_HOME:-~/.config}/test-on-sprite/config.json (outside any repo). This file only documents the shape — do not put real repo URLs or host details here.",
+  "targets": {
+    "example-target": {
+      "repo_url": "https://github.com/<owner>/<repo>.git",
+      "branch": "main",
+      "sprite": "test-example-target",
+      "clone_dir": "<repo>",
+      "install_cmd": "./install.sh --name testpb",
+      "test_cmd": "go test ./...",
+      "ready_checkpoint": "",
+      "pane": ""
+    }
+  }
+}

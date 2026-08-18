@@ -31,6 +31,11 @@ under `skills/<name>/SKILL.md`.
   self-identification (`$HERDR_PANE_ID` / `herdr pane current` instead of
   `focused` / `--current`). See [`skills/herdr/SKILL.md`](skills/herdr/SKILL.md)
   and the repo `NOTICE` / `LICENSE`.
+- **reflex** — standing "whenever X happens, do Y" instructions that fire on their
+  own in later sessions. Model-evaluated: entries live in one `REFLEXES.md` that
+  `CLAUDE.md` imports with `@`, so they are in the prompt from the first turn —
+  nothing polls and nothing watches a file. See
+  [`skills/reflex/SKILL.md`](skills/reflex/SKILL.md).
 - **whetstone** — adversarial cross-agent review loop: open a PR, have Codex review
   it, fix **every** finding, re-request, repeat, and merge only on a round that
   returns clean. Covers wrong-claim criteria in the PR body, verifying a fix by
