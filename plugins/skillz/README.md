@@ -54,6 +54,12 @@ under `skills/<name>/SKILL.md`.
   it replaced, and a read-only `history/`. Operations: `init`, `retire`,
   `accept`, `status`. See
   [`skills/living-docs/SKILL.md`](skills/living-docs/SKILL.md).
+- **step-back** — reframe a stuck problem: separate the intended outcome from
+  the current method, surface the untested assumption that makes the failing
+  approach look necessary, compare two or three genuinely different approaches
+  against the current baseline, and propose the smallest reversible test. Fires on
+  "take a step back", "what are we doing wrong", "take a deep breath". See
+  [`skills/step-back/SKILL.md`](skills/step-back/SKILL.md).
 - **sbx** — run an agent, or a plain shell, inside a Docker Sandboxes microVM
   (own kernel, filesystem, Docker daemon, deny-by-default network) via the `sbx`
   CLI: sandbox lifecycle, direct-vs-`--clone` workspaces, network policy presets
