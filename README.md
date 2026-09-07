@@ -52,6 +52,7 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`grilling`](plugins/skillz/skills/grilling/SKILL.md) | Interview the user relentlessly about a plan, decision, or idea — round-by-round design-tree questioning — to stress-test their thinking before acting on it. Imported from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). |
 | [`sbx`](plugins/skillz/skills/sbx/SKILL.md) | Run an agent — or a plain shell — inside a [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) microVM (own kernel, filesystem, Docker daemon, deny-by-default network) via the `sbx` CLI: lifecycle, `--clone` workspaces, network policy, secrets, ports, templates, kits — plus [test-bench recipes](plugins/skillz/skills/sbx/references/test-arena.md) for using sandboxes as a disposable scenario harness. |
 | [`living-docs`](plugins/skillz/skills/living-docs/SKILL.md) | Keep a repo's living documents in the root and retire stale ones into `history/` — one accepted version per doc, drafts beside it, nothing deleted. Set up the convention, retire a superseded doc, promote a draft, or show what is live vs retired. |
+| [`step-back`](plugins/skillz/skills/step-back/SKILL.md) | Reframe a stuck problem: separate the intended outcome from the current method, name the untested assumption that makes the failing approach look necessary, compare genuinely different alternatives, and propose the smallest reversible test. Fires on "take a step back", "what are we doing wrong", "take a deep breath". |
 
 > **Two transfer skills — which fires?** Default is **`croc`**. **`file-transfer`**
 > takes over only when a **named passwordless-SSH host** (e.g. `macminim`) is
@@ -275,6 +276,26 @@ the repo's `CLAUDE.md`), `retire` (`git mv` a superseded doc, then repoint the
 live documents that referenced it), `accept` (promote a draft, retire what it
 replaces), and `status` (what is live vs retired). Document-type agnostic:
 `DESIGN.md`, `SPEC-v*.md`, `RFC-*.md`, `PLAN-*.md`.
+
+### step-back
+
+A reassessment procedure for when an approach keeps failing. "Take a deep breath"
+is read as *reconsider the framing*, not as breathing guidance. The skill
+separates the **goal from the method** — restating the intended outcome without
+naming the current tool — then hunts for the **assumption that makes the current
+approach look necessary**, sorting verified facts from real constraints from
+untested beliefs and treating previous failures as evidence rather than noise.
+
+It then compares two or three **genuinely different** approaches (configuration
+tweaks to the same method do not count), keeps the current one as the baseline,
+and refuses to manufacture simplicity by quietly relaxing the user's explicit
+requirements or moving work somewhere else and calling it eliminated. The output
+is a short decision summary — actual goal, blocking assumption and its evidence,
+better candidates, recommendation, and the cheapest reversible experiment that
+could disprove it — never a questionnaire or a thought transcript.
+
+The folder also carries an `agents/openai.yaml` manifest and an icon, so the
+same skill can be dropped into Codex unchanged.
 
 ### sbx
 

@@ -1,0 +1,15 @@
+interface:
+  display_name: Step Back
+  short_description: Reassess goals and assumptions when an approach gets stuck
+  default_prompt: $step-back Take a step back. What are we doing wrong? Question the
+    goal and assumptions, find simpler approaches, and propose the smallest validation
+    step.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true
