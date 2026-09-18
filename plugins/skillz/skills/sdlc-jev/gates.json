@@ -1,0 +1,299 @@
+{
+  "_comment": [
+    "Pre-gate screening criteria for the `sdlc` skill, expressed as TypeSafe questions.",
+    "Each gate mirrors the written criteria of one SDLC stage. Edit the thresholds here;",
+    "the raw judgments stay reusable when a threshold moves. Stage 6 (Maintain) is absent",
+    "on purpose: its detector must stay deterministic (bands.yaml sigma), no model in it.",
+    "Rules: '<qid> <op> <value>' with op in < <= > >= == != in. 'in' takes a comma list."
+  ],
+  "model": "jev-1.13.0",
+  "gates": {
+    "plan": {
+      "stage": 1,
+      "title": "Plan gate -- is intent.md ready for the human to approve?",
+      "inputs": { "intent_md": "intent.md" },
+      "questions": {
+        "problem_distinct": {
+          "type": "noul",
+          "instructions": "Does `intent_md` state the problem separately from any proposed solution, rather than opening with an implementation already chosen?",
+          "criteria": {
+            "true": "The problem is described on its own terms before any solution is proposed",
+            "false": "The document presents an implementation as the starting point, with no problem stated independently of it"
+          }
+        },
+        "constraints_falsifiable": {
+          "type": "noul",
+          "instructions": "Are the constraints in `intent_md` stated so that one could later check whether they were respected?",
+          "criteria": {
+            "true": "Constraints name concrete limits, systems, or conditions that can be checked against a result",
+            "false": "Constraints are aspirational or vague, with nothing checkable in them"
+          }
+        },
+        "open_questions_real": {
+          "type": "noul",
+          "instructions": "Are the items `intent_md` lists as open questions genuinely still undecided elsewhere in the same document?",
+          "criteria": {
+            "true": "Every listed open question is still unresolved in the document",
+            "false": "At least one listed open question is in fact already decided elsewhere in the document"
+          }
+        },
+        "readiness": {
+          "type": "score",
+          "instructions": "Judge how ready this intent is for the human to approve it and start Design.",
+          "criteria": [
+            "no coherent intent yet; needs a rewrite",
+            "the shape is there, but the problem or the outcome is still unclear",
+            "approvable once a few specific points are confirmed",
+            "ready to approve as written"
+          ]
+        }
+      },
+      "blockers": [
+        { "when": "problem_distinct < 0.6", "say": "the problem is not stated separately from the solution" },
+        { "when": "open_questions_real < 0.5", "say": "listed open questions appear already decided in the document" }
+      ],
+      "pass": { "score": "readiness", "min": 2.5, "min_confidence": 0.6 }
+    },
+
+    "design": {
+      "stage": 2,
+      "title": "Design gate -- does spec.md answer intent.md?",
+      "inputs": { "intent_md": "intent.md", "spec_md": "spec.md" },
+      "questions": {
+        "covers_intent": {
+          "type": "noul",
+          "instructions": "Does `spec_md` address every outcome proposed in `intent_md`? Answer about coverage of the proposed outcomes only, not about quality.",
+          "criteria": {
+            "true": "Every proposed outcome in the intent has corresponding treatment in the spec",
+            "false": "At least one proposed outcome in the intent is absent from the spec"
+          }
+        },
+        "narrowing_is_explicit": {
+          "type": "noul",
+          "instructions": "If `spec_md` covers less than `intent_md` proposed, does it say so explicitly and name what was deferred? Answer true if the spec covers everything and nothing was deferred.",
+          "criteria": {
+            "true": "Either nothing was deferred, or the spec names what it defers and why",
+            "false": "The spec quietly omits something the intent proposed, without acknowledging it"
+          }
+        },
+        "has_open_concerns": {
+          "type": "noul",
+          "instructions": "Does `spec_md` still contain unresolved areas of concern -- inline `> CONCERN:` blocks, explicit open questions, or decisions deferred to later?",
+          "criteria": {
+            "true": "The spec flags at least one concern or open question as unresolved",
+            "false": "The spec records no unresolved concerns or open questions"
+          }
+        },
+        "scope_relation": {
+          "type": "choice",
+          "instructions": "How does the scope of `spec_md` relate to the scope of `intent_md`?",
+          "criteria": {
+            "faithful": "The spec covers the intent's scope, neither adding nor dropping substance",
+            "narrowed": "The spec deliberately covers less than the intent proposed",
+            "expanded": "The spec introduces substantial scope the intent did not propose",
+            "diverged": "The spec pursues a different outcome than the intent asked for"
+          }
+        },
+        "needs_attention": {
+          "type": "choice",
+          "instructions": "Which single area of `spec_md` most needs the human's attention before Build starts? Judge by risk of costly rework, not by section length.",
+          "criteria": {
+            "architecture": "How the components compose and where the boundaries fall",
+            "verification": "How the result will be proven to work",
+            "scope": "What is in and out, and what was deferred",
+            "dependencies": "Reliance on external systems, other repos, or unfinished work",
+            "none": "No area stands out as needing attention before Build"
+          }
+        },
+        "target_quantifiability": {
+          "type": "score",
+          "instructions": "The SDLC requires verification targets to be quantifiable ('all tests in test/x.sh pass') and never subjective ('looks good'). How quantifiable are the verification targets stated in `spec_md`?",
+          "criteria": [
+            "no verification targets are stated at all",
+            "targets are stated only in subjective terms",
+            "some targets are measurable, others are subjective",
+            "every stated target names a concrete, checkable outcome"
+          ]
+        },
+        "readiness": {
+          "type": "score",
+          "instructions": "Judge how ready this spec is for the human to accept it and start Build.",
+          "criteria": [
+            "needs a rewrite before review is worthwhile",
+            "reviewable, but several substantive gaps must be closed first",
+            "acceptable once a few specific points are confirmed",
+            "ready to accept as written"
+          ]
+        }
+      },
+      "blockers": [
+        { "when": "narrowing_is_explicit < 0.6", "say": "the spec appears to narrow the intent without saying so" },
+        { "when": "scope_relation in expanded,diverged", "say": "spec scope has drifted from the intent" },
+        { "when": "target_quantifiability < 2.0", "say": "verification targets are not quantifiable enough" }
+      ],
+      "pass": { "score": "readiness", "min": 2.5, "min_confidence": 0.6 }
+    },
+
+    "build": {
+      "stage": 3,
+      "title": "Build gate -- is plan.md approvable before code is written?",
+      "inputs": { "plan_md": "plan.md", "spec_md": "spec.md" },
+      "questions": {
+        "names_files": {
+          "type": "noul",
+          "instructions": "Does `plan_md` name the specific files that will change?",
+          "criteria": {
+            "true": "Concrete file paths are listed",
+            "false": "Changes are described only in general terms, with no files named"
+          }
+        },
+        "names_proof_tests": {
+          "type": "noul",
+          "instructions": "Does `plan_md` state the proof tests -- how the finished work will be shown to work?",
+          "criteria": {
+            "true": "The plan names the tests, commands, or checks that will prove the work",
+            "false": "The plan describes what to build but not how it will be proven"
+          }
+        },
+        "ordering_present": {
+          "type": "noul",
+          "instructions": "Does `plan_md` give an order of work, rather than an unordered list of changes?",
+          "criteria": {
+            "true": "The plan sequences the work, or its steps are meaningfully ordered",
+            "false": "The plan is an unordered collection of changes"
+          }
+        },
+        "serves_spec": {
+          "type": "noul",
+          "instructions": "Does the work described in `plan_md` implement what `spec_md` specified?",
+          "criteria": {
+            "true": "The plan's work follows from the spec",
+            "false": "The plan pursues work the spec did not call for, or omits what it did"
+          }
+        },
+        "risk_level": {
+          "type": "choice",
+          "instructions": "How much scrutiny does this plan warrant from the human before code is written? Judge by blast radius and reversibility, not by size.",
+          "criteria": {
+            "routine": "Reversible, contained, and touches nothing protected",
+            "notable": "Touches shared interfaces, data shapes, or several components at once",
+            "high": "Irreversible, touches production, credentials, protected paths, or data migration"
+          }
+        },
+        "readiness": {
+          "type": "score",
+          "instructions": "Judge how ready this plan is for the human to approve it and let code be written.",
+          "criteria": [
+            "not a plan yet; needs to be written properly",
+            "a sketch; the files or the proof are missing",
+            "approvable once a few specific points are confirmed",
+            "ready to approve as written"
+          ]
+        }
+      },
+      "blockers": [
+        { "when": "names_proof_tests < 0.7", "say": "the plan does not state its proof tests" },
+        { "when": "names_files < 0.6", "say": "the plan does not name the files that change" },
+        { "when": "serves_spec < 0.6", "say": "the plan does not follow from the spec" }
+      ],
+      "pass": { "score": "readiness", "min": 2.5, "min_confidence": 0.6 }
+    },
+
+    "test": {
+      "stage": 4,
+      "title": "Test gate -- is the claimed proof actually proof?",
+      "inputs": { "report_md": null },
+      "questions": {
+        "evidence_present": {
+          "type": "noul",
+          "instructions": "Does `report_md` contain actual verification output -- a pasted test log, build output, or command result -- rather than only a description of testing that was done?",
+          "criteria": {
+            "true": "Real output is pasted into the report",
+            "false": "The report only asserts that verification happened, without showing output"
+          }
+        },
+        "claims_match_evidence": {
+          "type": "noul",
+          "instructions": "Do the claims made in `report_md` match the verification output it shows? Answer false if the report claims success the pasted output does not demonstrate.",
+          "criteria": {
+            "true": "Every claim is supported by the output shown",
+            "false": "At least one claim goes beyond, or contradicts, the output shown"
+          }
+        },
+        "failures_disclosed": {
+          "type": "noul",
+          "instructions": "If the verification output contains failures, errors, or skipped work, does `report_md` acknowledge them? Answer true if the output shows no failures at all.",
+          "criteria": {
+            "true": "Either the output is clean, or the report acknowledges every failure in it",
+            "false": "The output contains failures, errors, or skips that the report does not mention"
+          }
+        },
+        "target_quantifiability": {
+          "type": "score",
+          "instructions": "The SDLC requires verification targets to be quantifiable ('all tests in test/x.sh pass') and never subjective ('looks good'). How quantifiable are the targets this report claims to have met?",
+          "criteria": [
+            "no target is stated; the report only describes activity",
+            "the target is subjective, such as 'works' or 'looks good'",
+            "some targets are measurable, others are subjective",
+            "every target named is concrete and checkable against the output shown"
+          ]
+        }
+      },
+      "blockers": [
+        { "when": "evidence_present < 0.7", "say": "no verification output is shown, only a claim that testing happened" },
+        { "when": "claims_match_evidence < 0.7", "say": "claims go beyond the evidence shown" },
+        { "when": "failures_disclosed < 0.6", "say": "the output appears to contain failures the report does not mention" },
+        { "when": "target_quantifiability < 2.0", "say": "the target is subjective; the SDLC requires a quantified one" }
+      ],
+      "pass": { "score": "target_quantifiability", "min": 2.5, "min_confidence": 0.5 }
+    },
+
+    "deploy": {
+      "stage": 5,
+      "title": "Deploy gate -- did the review actually happen, and is anything left open?",
+      "inputs": { "review_md": "REVIEW.md", "findings": null },
+      "questions": {
+        "passes_covered": {
+          "type": "noul",
+          "instructions": "Do the findings in `findings` show that every review pass defined in `review_md` was actually run?",
+          "criteria": {
+            "true": "Every pass defined in REVIEW.md is represented in the findings",
+            "false": "At least one defined pass has no evidence of having been run"
+          }
+        },
+        "unresolved_findings": {
+          "type": "noul",
+          "instructions": "Do `findings` contain any finding that is still unresolved -- neither fixed nor explicitly accepted with a reason?",
+          "criteria": {
+            "true": "At least one finding is left open with no fix and no stated acceptance",
+            "false": "Every finding is either fixed or explicitly accepted with a reason"
+          }
+        },
+        "self_approval": {
+          "type": "noul",
+          "instructions": "Do `findings` indicate that the same agent or person who wrote the change also approved it? The SDLC forbids this (separation of duties).",
+          "criteria": {
+            "true": "The author of the change appears to have approved their own work",
+            "false": "Approval came from someone or something other than the author"
+          }
+        },
+        "highest_severity": {
+          "type": "score",
+          "instructions": "How severe is the most serious unresolved issue in `findings`?",
+          "criteria": [
+            "nothing unresolved",
+            "cosmetic or stylistic only",
+            "a real defect in a contained area",
+            "affects correctness broadly, security, or data integrity"
+          ]
+        }
+      },
+      "blockers": [
+        { "when": "self_approval > 0.5", "say": "the author appears to have approved their own change (separation of duties)" },
+        { "when": "passes_covered < 0.6", "say": "not every review pass defined in REVIEW.md was run" },
+        { "when": "highest_severity >= 2.0", "say": "an unresolved finding is more than cosmetic" }
+      ],
+      "pass": { "score": "highest_severity", "max": 1.0, "min_confidence": 0.5 }
+    }
+  }
+}
