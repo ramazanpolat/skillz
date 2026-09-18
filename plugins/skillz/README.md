@@ -69,3 +69,13 @@ under `skills/<name>/SKILL.md`.
   worked recipes for using sandboxes as disposable test benches (headless CI,
   oracle runs, pty-driven agents, chaos by network denial, nested compose in the
   bench's own Docker daemon, and an executable credential-isolation test).
+- **sdlc** — an AI-native SDLC for a repo: six stages (Plan, Design, Build, Test,
+  Deploy, Maintain), the artifact each produces, and the human gate each must pass.
+  Encodes [Anthropic's AI-native SDLC playbook](https://claude.com/blog/the-ai-native-sdlc-playbook)
+  as an executable skill. See [`skills/sdlc/SKILL.md`](skills/sdlc/SKILL.md).
+- **sdlc-jev** — screen an SDLC artifact against its gate criteria *before* a human
+  reviews it, via [TypeSafe](https://docs.typesafe.ai) System One (Jev): typed
+  judgments with calibrated probabilities, criteria and thresholds in `gates.json`,
+  exit codes for CI. Reports; **never approves**. See
+  [`skills/sdlc-jev/SKILL.md`](skills/sdlc-jev/SKILL.md) and
+  [`skills/sdlc-jev/gates.json`](skills/sdlc-jev/gates.json).

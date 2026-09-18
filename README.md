@@ -53,6 +53,8 @@ Verify with `/plugin` — the `skillz` plugin and its skills should be listed.
 | [`sbx`](plugins/skillz/skills/sbx/SKILL.md) | Run an agent — or a plain shell — inside a [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) microVM (own kernel, filesystem, Docker daemon, deny-by-default network) via the `sbx` CLI: lifecycle, `--clone` workspaces, network policy, secrets, ports, templates, kits — plus [test-bench recipes](plugins/skillz/skills/sbx/references/test-arena.md) for using sandboxes as a disposable scenario harness. |
 | [`living-docs`](plugins/skillz/skills/living-docs/SKILL.md) | Keep a repo's living documents in the root and retire stale ones into `history/` — one accepted version per doc, drafts beside it, nothing deleted. Set up the convention, retire a superseded doc, promote a draft, or show what is live vs retired. |
 | [`step-back`](plugins/skillz/skills/step-back/SKILL.md) | Reframe a stuck problem: separate the intended outcome from the current method, name the untested assumption that makes the failing approach look necessary, compare genuinely different alternatives, and propose the smallest reversible test. Fires on "take a step back", "what are we doing wrong", "take a deep breath". |
+| [`sdlc`](plugins/skillz/skills/sdlc/SKILL.md) | An AI-native SDLC for a repo: six stages (Plan, Design, Build, Test, Deploy, Maintain), the artifact each produces (`intent.md`, `spec.md`, `plan.md`, proof in the report, `REVIEW.md`, `bands.yaml`), and the human gate each must pass. Encodes [Anthropic's AI-native SDLC playbook](https://claude.com/blog/the-ai-native-sdlc-playbook) as an executable repo-local skill. |
+| [`sdlc-jev`](plugins/skillz/skills/sdlc-jev/SKILL.md) | Screen an SDLC artifact against its gate criteria **before** a human reviews it, using [TypeSafe](https://docs.typesafe.ai) System One (Jev) — typed judgments with calibrated probabilities instead of a reviewer's prose. Criteria and thresholds live in `gates.json`; it reports and **never approves**. ~$0.0008 per screening. |
 
 > **Two transfer skills — which fires?** Default is **`croc`**. **`file-transfer`**
 > takes over only when a **named passwordless-SSH host** (e.g. `macminim`) is
@@ -297,6 +299,53 @@ could disprove it — never a questionnaire or a thought transcript.
 The folder also carries an `agents/openai.yaml` manifest and an icon, so the
 same skill can be dropped into Codex unchanged.
 
+### sdlc
+
+Anthropic's ["AI-native SDLC playbook"](https://claude.com/blog/the-ai-native-sdlc-playbook)
+turned from a document into something a repo actually runs on. Six stages, each with
+one named artifact and one human gate: Plan → `intent.md`, Design → `spec.md`,
+Build → `plan.md` then code, Test → proof pasted into the report, Deploy → `REVIEW.md`
+and the PR, Maintain → `bands.yaml` and a new `intent.md`.
+
+The premise is that agents made writing code cheap, so the bottleneck moved to
+**deciding what to build and proving it works** — and both of those get a named
+artifact and a gate in front of them. Written for the solo case: one human holding
+every role the guide splits across five people, and one or more agents working inside
+the gates. Every gate means the same thing — the human says yes, recorded in git.
+
+Carries the rules that are easiest to skip and most expensive to skip: state the
+problem separately from the solution; never write code before `plan.md` is approved;
+targets are quantifiable, never "looks good"; the agent that wrote the code does not
+approve it; a mistake made twice becomes a `CLAUDE.md` entry; and the stage-6 detector
+stays deterministic with no model in it.
+
+### sdlc-jev
+
+The screening pass that runs *before* an `sdlc` gate, so the human arrives already
+knowing where to look. Each gate's criteria are prose — "covers the intent",
+"concerns resolved", "targets are quantifiable" — and no regex checks prose. Asking a
+chat model returns a confident paragraph you then have to re-judge yourself, which is
+a second opinion rather than screening.
+
+Instead it uses [TypeSafe](https://docs.typesafe.ai) System One (**Jev**), which
+returns typed answers and calibrated probabilities rather than text. Each written
+criterion becomes a question with a defined answer set; the answer comes back as a
+number the policy acts on. Five gates (stages 1–5), all criteria and thresholds in
+`gates.json`, nothing hardcoded in the runner. Exit codes `0` pass / `1` review /
+`2` blocked, so CI can block on `2` and let `1` through with a comment.
+
+**Stage 6 has no gate here on purpose** — the Maintain detector must stay
+deterministic (sigma bands, no model). Jev belongs in the diagnose step *after* a
+breach, writing the next `intent.md`.
+
+It **never approves**: that would break the SDLC's own first and fifth principles
+(human judgment above the loop; separation of duties). A clean screening means
+"nothing in the written criteria tripped" — a far narrower claim than "this is good".
+The shipped thresholds are starting points, not measurements; calibrate them against
+an `evals/` set of artifacts whose verdict you already know, and pin a model version
+so an update cannot silently move your gates. A full Design screening over two real
+~5k-word documents costs about **$0.0008**.
+
 ### sbx
 
 Wraps the [`sbx`](https://docs.docker.com/reference/cli/sbx/) CLI — Docker
@@ -352,8 +401,13 @@ skillz/
             │   ├── config.json        # archive root + export search defaults
             │   ├── lib/               # shared helpers (export loading, render, slug)
             │   └── scripts/           # archive.py (import/sync/refile/status), harvest.py
-            └── herdr/                 # MODIFIED fork of herdr's skill (AGPL-3.0)
-                └── SKILL.md
+            ├── herdr/                 # MODIFIED fork of herdr's skill (AGPL-3.0)
+            │   └── SKILL.md
+            └── sdlc-jev/
+                ├── SKILL.md
+                ├── gates.json      # gate criteria + thresholds (edit this, not the runner)
+                └── scripts/
+                    └── gate.py     # reads gates.json; one parallel request per gate
 ```
 
 - **`marketplace.json`** advertises one plugin, `skillz`, sourced from
