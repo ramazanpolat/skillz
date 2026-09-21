@@ -386,17 +386,22 @@ the task its agent is working, and a task's lock is **session-keyed**, so the
 tab's title leads straight to the `session=` id `claude --resume` needs to
 restore that pane's *exact* prior conversation, not a fresh one.
 
-`scripts/snapshot.py` captures a herdr session's layout (read-only — no lock
-writes) and matches every tab against every local playbook's task index: exact
-or fuzzy title match first, then a cwd/`.worktree` fallback for untitled or
-renamed-since tabs, with lock recency breaking ties between playbooks. Anything
-genuinely ambiguous comes back `uncertain` with candidate Goals attached rather
-than a guess. `scripts/resurrect.py` recreates the layout in a new or existing
-herdr session, then relaunches the resumable tabs in small batches — checking
-real memory health (`memory_pressure` free% + swap *used*, not the misleading
-raw free-page count) between batches, catching the two first-run Claude Code
-trust dialogs that default to declining, and refusing to double-launch a session
-that's already running elsewhere (PID-reuse-safe, unlike a bare `kill -0`).
+**No scripts ship with this skill, on purpose.** `SKILL.md` is a recipe — match
+every tab by exact/fuzzy title, then a cwd/`.worktree` fallback for untitled or
+renamed-since tabs, lock recency breaking ties between playbooks, anything
+genuinely ambiguous left as `uncertain` with candidate Goals attached rather
+than a guess — but you (the agent) run the actual `herdr` and shell commands
+live, batch by batch, reacting to what a pane really shows: checking real
+memory health (`memory_pressure` free% + swap *used*, not the misleading raw
+free-page count) between relaunch batches, catching the two first-run Claude
+Code trust dialogs that default to declining, refusing to double-launch a
+session that's already running elsewhere (checking the pid is actually a
+`claude` process, not just alive — PID reuse after a reboot is real). An
+earlier, scripted version of this skill existed; review found a run of bugs
+that all came down to hardcoded assumptions a live agent wouldn't make (a
+`herdr` subcommand name that had drifted from the installed CLI, a batch loop
+that silently disabled its own safety check on any unexpected error) — it was
+deliberately replaced with this recipe instead of patched.
 
 Built and proven against a real crash: a 24GB Mac mini OOM-killed itself with 17
 workspaces and 70 tabs open across a dozen playbook installs. Every gotcha in
