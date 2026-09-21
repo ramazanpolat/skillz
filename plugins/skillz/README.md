@@ -79,3 +79,11 @@ under `skills/<name>/SKILL.md`.
   exit codes for CI. Reports; **never approves**. See
   [`skills/sdlc-jev/SKILL.md`](skills/sdlc-jev/SKILL.md) and
   [`skills/sdlc-jev/gates.json`](skills/sdlc-jev/gates.json).
+- **herdr-snapshot** — save a herdr session's full workspace/tab/pane layout
+  together with which Kommander playbook + task + resumable session id each pane
+  was running (matched via the tab-title = task-name habit and each task's
+  session-keyed lock), then recreate that exact layout in a new or different
+  herdr session with `claude --resume <session>` fired into each pane in safe,
+  memory-monitored batches. For recovering a whole fleet of agents after an OOM
+  kill, crash, or reboot. See
+  [`skills/herdr-snapshot/SKILL.md`](skills/herdr-snapshot/SKILL.md).

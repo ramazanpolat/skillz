@@ -375,6 +375,36 @@ credential-isolation test for the "use-but-not-read" claim. Ends with a
 feature→placement map and an explicit list of what is documented versus what
 still needs verifying on a signed-in host.
 
+### herdr-snapshot
+
+Pairs [herdr](https://herdr.dev) (workspaces/tabs/panes) with the
+[Kommander playbook](https://github.com/ramazanpolat/kommander-playbook)'s
+task-lock system to answer what herdr alone can't: *which Kommander task, in
+which playbook, was each pane actually running* — and to bring that whole fleet
+back after a crash. The trick is a Kommander habit: a pilot titles each tab after
+the task its agent is working, and a task's lock is **session-keyed**, so the
+tab's title leads straight to the `session=` id `claude --resume` needs to
+restore that pane's *exact* prior conversation, not a fresh one.
+
+`scripts/snapshot.py` captures a herdr session's layout (read-only — no lock
+writes) and matches every tab against every local playbook's task index: exact
+or fuzzy title match first, then a cwd/`.worktree` fallback for untitled or
+renamed-since tabs, with lock recency breaking ties between playbooks. Anything
+genuinely ambiguous comes back `uncertain` with candidate Goals attached rather
+than a guess. `scripts/resurrect.py` recreates the layout in a new or existing
+herdr session, then relaunches the resumable tabs in small batches — checking
+real memory health (`memory_pressure` free% + swap *used*, not the misleading
+raw free-page count) between batches, catching the two first-run Claude Code
+trust dialogs that default to declining, and refusing to double-launch a session
+that's already running elsewhere (PID-reuse-safe, unlike a bare `kill -0`).
+
+Built and proven against a real crash: a 24GB Mac mini OOM-killed itself with 17
+workspaces and 70 tabs open across a dozen playbook installs. Every gotcha in
+`SKILL.md` — the free-page red herring, PID reuse after reboot, the two silent
+first-run dialogs, cwd-only matches misfiring on bare-word tab names, a task
+matched by content instead of path — happened for real during that recovery.
+See [`skills/herdr-snapshot/SKILL.md`](plugins/skillz/skills/herdr-snapshot/SKILL.md).
+
 ---
 
 ## Repository layout
