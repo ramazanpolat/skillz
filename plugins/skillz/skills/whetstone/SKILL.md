@@ -233,13 +233,19 @@ run locally on the same diff with the same PR body. For example, Antigravity wit
 Gemini model, reviewing read-only:
 
 ```bash
+S=$(mktemp -d)                      # the reviewer runs HERE, never in a checkout
 { cat pr-body.md; echo; echo 'Review this diff. List findings, or end with the line VERDICT: clean'; \
-  git diff "origin/$BASE...HEAD"; } > prompt.txt
-agy --model gemini-3.1-pro-high --print-timeout 20m --mode plan --print="$(cat prompt.txt)"
+  git diff "origin/$BASE...HEAD"; } > "$S/prompt.txt"
+HEAD_BEFORE=$(git rev-parse HEAD)
+(cd "$S" && agy --model gemini-3.1-pro-high --print-timeout 20m --mode plan --print="$(cat prompt.txt)")
+[ "$(git rev-parse HEAD)" = "$HEAD_BEFORE" ] && [ -z "$(git status --porcelain)" ] || echo "the reviewer changed the checkout"
 ```
 
 Put `--print=` last and attach the prompt with `=`: a bare `--print` swallows the next
-token as its prompt. Handle its findings exactly like Codex's.
+token as its prompt. Embed the diff and launch from an empty scratch directory:
+`--mode plan` does not keep a reviewer out of your repositories, and one run went
+looking for the PR on its own and `git checkout`-ed it in the user's primary checkout.
+Handle its findings exactly like Codex's.
 
 A fallback verdict is weaker than the loop's merge criterion, and the user decides
 whether it is enough:
