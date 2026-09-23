@@ -40,7 +40,8 @@ open PR ──> @codex review ──> fix ALL findings ──> re-request
    the first review immediately, so **the first round has no baseline to take** — the
    PR number does not exist until the PR does. Treat every id as new for round one
    (`BASE_*=0`); anything else races the reviewer and silently swallows the round.
-2. **Wait** for the review (see *Watching for the review*).
+2. **Wait** for the review (see *Watching for the review*) — against a deadline, not
+   indefinitely (see *Deadline, quota and the fallback reviewer*).
 3. **Triage every finding.** Confirm or refute each against the code — do not accept
    on authority, and do not dismiss on ego.
 4. **Fix**, verifying each fix empirically (see *Verification*).
@@ -100,15 +101,25 @@ cycle:
 
 | What | Where |
 |---|---|
-| Findings | `pulls/N/reviews` (review **body**) **and** `pulls/N/comments` (inline) |
+| Findings | `pulls/N/reviews` (review **body**) **and** `pulls/N/comments` (inline) — and **no** issue comment |
 | "Didn't find any major issues" | `issues/N/comments` — a plain issue comment |
+| Clean, silently | a 👍 (`+1`) **reaction** on the request itself — the `@codex review` comment, or the PR body in round one — with no comment anywhere |
+| Quota exhausted | `issues/N/comments` — "You have reached your Codex usage limits for code reviews" |
 
-Query both finding endpoints every round. A round whose feedback sits in the review
-body rather than inline comments will otherwise look empty, and the loop will stop
-with findings unaddressed.
+Query all of them every round. A round whose feedback sits in the review body rather
+than inline comments will otherwise look empty, and the loop will stop with findings
+unaddressed.
 
-A watcher looking only at reviews **times out on a clean round** and looks like
-nothing happened.
+Each blind spot has bitten, and each produced a confident wrong story:
+
+- A watcher looking only at reviews **times out on a clean round** and looks like
+  nothing happened.
+- A watcher looking only at issue comments **sees silence on a round with findings**
+  and reports "waiting on Codex" while the findings sit on the head — for 50 minutes,
+  in one case, with a secrets-leak finding among them.
+- The app's own reply to a request says "if Codex has suggestions, it will comment;
+  otherwise it will react with 👍". A watcher that reads no reactions cannot see that
+  kind of clean pass at all.
 
 Two traps make naive polling wrong, and both have bitten:
 
@@ -171,10 +182,76 @@ api "repos/$R/issues/$N/comments" \
       | if ($v|length) > 0 then "CLEAN for \($h)" else "not clean yet" end'
 ```
 
+The 👍 channel carries no SHA, so correlate it through the request instead: record the
+request's id and the head at the moment you post it, and count the reaction only if
+the head has not moved since. Identify the reactor by its exact login,
+`chatgpt-codex-connector[bot]`. GitHub usernames cannot contain brackets, so a person
+cannot hold that login. Do **not** also filter on `user.type == "Bot"`: on a
+reaction the app is reported as `"User"`, and that filter silently drops every clean
+pass sent this way. Measured on a real 👍 from the app.
+
+```bash
+# REQ = id of the `@codex review` comment you posted this round, REQ_HEAD = head then.
+# Round one: the request is the PR body, so read issues/$N/reactions instead.
+[ "$(gh api "repos/$R/pulls/$N" --jq .head.sha)" = "$REQ_HEAD" ] &&
+api "repos/$R/issues/comments/$REQ/reactions" \
+  | jq -r '[ .[][] | select(.content == "+1")
+              | select(.user.login == "chatgpt-codex-connector[bot]") ]
+      | if length > 0 then "CLEAN (reaction) for the requested head" else "no reaction" end'
+```
+
 Verified against real threads: the head-correlated check reports CLEAN on a PR whose
 verdict names that SHA and `not clean yet` on PRs with open findings; and with
 pagination forced (`?per_page=2`), the slurped form returns one maximum where the
 `--jq` form returned six.
+
+## Deadline, quota and the fallback reviewer
+
+Rounds answer in about **2–7 minutes**. The reviewer is also quota-limited, and a
+loop that cannot tell silence from latency stalls every pipeline behind it.
+
+- **"Waiting on Codex" is never a status by itself.** Report it only with: when the
+  request was posted and how long ago, the result of checking every channel in the
+  table above since the baseline, and whether the newest reviewed commit is the head.
+- **Check for the quota reply first.** A new app comment matching `usage limits for
+  code reviews` ends the round immediately: no review is coming for this request, and
+  re-requesting will not change that until the quota resets.
+
+  ```bash
+  api "repos/$R/issues/$N/comments" \
+    | jq -r --argjson b "$BASE_V" '.[][] | select(.id > $b)
+        | select(.performed_via_github_app.slug == "chatgpt-codex-connector")
+        | select(.body | test("usage limits for code reviews"))
+        | "QUOTA \(.created_at)"'
+  ```
+- **Deadline: 20 minutes.** Nothing on any channel for the current head after 20
+  minutes is **likely quota**, even with no quota reply. Say so to the user in those
+  words and move to the fallback. Do not keep polling in silence.
+
+**The fallback reviewer** is a second agent from a different vendor than the author,
+run locally on the same diff with the same PR body. For example, Antigravity with a
+Gemini model, reviewing read-only:
+
+```bash
+{ cat pr-body.md; echo; echo 'Review this diff. List findings, or end with the line VERDICT: clean'; \
+  git diff "origin/$BASE...HEAD"; } > prompt.txt
+agy --model gemini-3.1-pro-high --print-timeout 20m --mode plan --print="$(cat prompt.txt)"
+```
+
+Put `--print=` last and attach the prompt with `=`: a bare `--print` swallows the next
+token as its prompt. Handle its findings exactly like Codex's.
+
+A fallback verdict is weaker than the loop's merge criterion, and the user decides
+whether it is enough:
+
+- **Report it as what it is.** "Clean from the fallback reviewer (Antigravity,
+  gemini-3.1-pro-high) on `<sha>`; Codex unavailable (quota since HH:MM)". Never
+  "clean" on its own.
+- **Do not merge on a fallback verdict unless the user says so.** Offer the choice:
+  merge now, or re-request `@codex review` when the quota resets.
+- **Never fall back to the authoring agent reviewing itself.** "The reviewer is not
+  the author" is the property this whole loop exists for. A same-vendor subagent is
+  the last resort, and if you use one, say so.
 
 ## Working the findings
 
