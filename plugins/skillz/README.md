@@ -32,9 +32,11 @@ under `skills/<name>/SKILL.md`.
   `focused` / `--current`). See [`skills/herdr/SKILL.md`](skills/herdr/SKILL.md)
   and the repo `NOTICE` / `LICENSE`.
 - **reflex** — standing "whenever X happens, do Y" instructions that fire on their
-  own in later sessions. Model-evaluated: entries live in one `REFLEXES.md` that
-  `CLAUDE.md` imports with `@`, so they are in the prompt from the first turn —
-  nothing polls and nothing watches a file. See
+  own in later sessions. Two engines: **jev**, where each instruction is a
+  procedure file and the plugin's hook (`hooks/hooks.json`) asks TypeSafe's Jev on
+  every eligible event whether one applies, then injects its steps, with nothing
+  in the prompt (opt-in per config dir); and **prompt**, where entries live in a
+  `REFLEXES.md` that `CLAUDE.md` imports. See
   [`skills/reflex/SKILL.md`](skills/reflex/SKILL.md).
 - **whetstone** — adversarial cross-agent review loop: open a PR, have Codex review
   it, fix **every** finding, re-request, repeat, and merge only on a round that
