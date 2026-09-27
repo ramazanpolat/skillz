@@ -150,9 +150,14 @@ def bash(cmd, session="s1"):
             "tool_name": "Bash", "tool_input": {"command": cmd}}
 
 
-def stop(reply, prompt_id="p1", active=False):
-    return {"hook_event_name": "Stop", "session_id": "s1", "prompt_id": prompt_id,
+def stop(reply, active=False):
+    # the documented Stop payload: no prompt_id
+    return {"hook_event_name": "Stop", "session_id": "s1",
             "last_assistant_message": reply, "stop_hook_active": active}
+
+
+def prompt(text, session="s1"):
+    return {"hook_event_name": "UserPromptSubmit", "session_id": session, "prompt": text}
 
 
 class OptIn(Base):
@@ -215,6 +220,21 @@ class Request(Base):
         for secret in ("abcdefghijkl123", "hunter2", "ghp_" + "a" * 30):
             self.assertNotIn(secret, sent)
         self.assertIn("<redacted>", sent)
+
+    def test_quoted_and_json_credentials_are_redacted(self):
+        self.config()
+        self.proc("open-pr", OPEN_PR)
+        cmd = ("curl --data '{\"token\": \"abc123\", \"n\": 1}' "
+               "&& export api_key='s3cr3t-one' && mysql password=\"two words\"")
+        self.hook(bash(cmd))
+        sent = self.jev.requests[-1]["body"]["state"]["content"]
+        for secret in ("abc123", "s3cr3t-one", "two words"):
+            self.assertNotIn(secret, sent)
+        self.assertIn('"token": "<redacted>"', sent)
+        self.assertIn("api_key='<redacted>'", sent)
+        prev = self.log()[-1]["preview"]
+        for secret in ("abc123", "s3cr3t-one", "two words"):
+            self.assertNotIn(secret, prev)
 
     def test_event_kinds(self):
         self.config()
@@ -309,11 +329,15 @@ class Reply(Base):
         self.proc("report-pr-state", REPORT)
 
     def test_a_matching_reply_is_blocked_once_per_turn(self):
-        self.jev.answers += [("report-pr-state", {"report-pr-state": 0.97, "none": 0.03})] * 2
+        self.jev.answers += [("report-pr-state", {"report-pr-state": 0.97, "none": 0.03})] * 3
         out = self.hook(stop("Head is 5b5d8e9, MERGEABLE."))
         self.assertEqual(out["decision"], "block")
         self.assertIn("Read the head back", out["reason"])
         self.assertIsNone(self.hook(stop("Head is 5b5d8e9, MERGEABLE.")))    # same turn: let it stop
+        # the next user message starts a new turn: the same procedure may block again
+        self.hook(prompt("and the other PR?"))                                # no user_prompt procedure: no call
+        out = self.hook(stop("Head is 7c1d2e3, MERGEABLE."))
+        self.assertEqual(out["decision"], "block")
 
     def test_stop_hook_active_never_blocks(self):
         self.jev.answers.append(("report-pr-state", {"report-pr-state": 0.97, "none": 0.03}))
@@ -404,6 +428,19 @@ class Parser(Base):
         self.check("---\nfires_on: [shell]\ncovers: c\n---\nsteps\n", "unknown kind 'shell'")
         self.check("---\nfires_on: [bash]\ncovers: c\nmode: sometimes\n---\nsteps\n", "mode must be auto or ask")
         self.check("---\nfires_on: [bash]\ncovers: c\n---\n\n", "no steps")
+
+    def test_list_shaped_values_break_only_their_file(self):
+        self.config()
+        self.proc("open-pr", OPEN_PR)
+        self.proc("x", "---\nname: [x]\nfires_on: [bash]\ncovers: c\n---\nsteps\n")
+        self.proc("y", "---\nfires_on: [bash]\ncovers: [a, b]\n---\nsteps\n")
+        r = subprocess.run([sys.executable, DISPATCH, "list"], capture_output=True, text=True, env=self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("BROKEN  x.md", r.stdout)
+        self.assertIn("BROKEN  y.md", r.stdout)
+        self.assertIn("open-pr", r.stdout)
+        self.jev.answers.append(("open-pr", {"open-pr": 0.95, "none": 0.05}))
+        self.assertIn("[procedure: open-pr]", self.hook(bash("gh pr create"))["hookSpecificOutput"]["additionalContext"])
 
     def test_a_good_file_lists(self):
         self.proc("open-pr", OPEN_PR)

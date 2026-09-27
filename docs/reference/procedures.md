@@ -63,7 +63,8 @@ multi-line values. A file that fails to parse is skipped and listed as
 Other tools never reach the dispatcher. Text longer than 4000 characters is
 clipped to its first and last 2000. Before sending, values that look like
 credentials are replaced with `<redacted>`: `Bearer <token>`,
-`password=` / `token=` / `secret=` / `api_key=` / `authorization:` values, and
+`password` / `passwd` / `pwd` / `token` / `secret` / `api_key` / `authorization`
+values after `=` or `:` (bare, quoted, or as a JSON value), and
 `sk-...`, `ghp_...`, `xox?-...`, `AKIA...` strings. This is best effort, not a
 guarantee: do not put secret values in commands at all.
 
@@ -85,7 +86,7 @@ guarantee: do not put secret values in commands at all.
 | fire, first time in the session | `hookSpecificOutput.additionalContext`: `[procedure: <name>] Jev matched this moment (...; p=0.97)`, the mode rule, the disclosure rule, the read-only rule, the title and the steps |
 | fire again in the same session | a one-line `applies again` reminder with the file path |
 | hint | `[procedure: <name>] may apply ...`, its `covers`, and the file path |
-| fire on `reply` | `{"decision": "block", "reason": <the steps>}`, at most once per turn (`prompt_id`), never while `stop_hook_active` |
+| fire on `reply` | `{"decision": "block", "reason": <the steps>}`, at most once per procedure per turn (the next user message resets it), never while `stop_hook_active` |
 
 No `permissionDecision` is ever set: a procedure never allows or denies a tool
 call. Exit status is always 0.

@@ -116,6 +116,9 @@ def parse_procedure(path):
         elif len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
         meta[key.strip()] = value
+    for key in ("name", "title", "mode", "status", "covers", "excludes"):
+        if key in meta and not isinstance(meta[key], str):
+            raise ProcedureError(f"`{key}:` must be a single value, not a list")
     body = text[end + 4:].lstrip("\n").rstrip() + "\n"
     stem = os.path.splitext(os.path.basename(path))[0]
     name = meta.get("name", stem)
@@ -154,8 +157,10 @@ def load_procedures(pdir):
             continue
         try:
             procs.append(parse_procedure(os.path.join(pdir, fn)))
-        except (OSError, ProcedureError) as e:
+        except (OSError, ProcedureError, UnicodeDecodeError) as e:
             errors.append(f"{fn}: {e}")
+        except Exception as e:  # noqa: BLE001 -- one bad file must never hide the others
+            errors.append(f"{fn}: {type(e).__name__}: {e}")
     return procs, errors
 
 
@@ -173,20 +178,26 @@ def clip(text, limit=MAX_CONTENT):
     return text[:half] + "\n[...]\n" + text[-half:]
 
 
-SECRET_PATTERNS = [
-    (re.compile(r"(?i)\b(bearer)\s+[A-Za-z0-9._~+/=-]{8,}"), r"\1 <redacted>"),
-    (re.compile(r"(?i)\b(password|passwd|pwd|token|secret|api[_-]?key|authorization)(\s*[=:]\s*)(?!<redacted>)[^\s'\"]+"),
-     r"\1\2<redacted>"),
-    (re.compile(r"\b(sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[abpr]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16})\b"),
-     "<redacted>"),
-]
+BEARER = re.compile(r"(?i)\b(bearer)\s+[A-Za-z0-9._~+/=-]{8,}")
+# key, then = or : (a JSON key's closing quote allowed), then a value that is
+# quoted ('...' or "...", spaces included) or bare
+KEYED = re.compile(r"(?i)\b(password|passwd|pwd|token|secret|api[_-]?key|authorization)"
+                   r"([\"']?\s*[=:]\s*)"
+                   r"(?:(\"|')(.*?)\3|([^\s'\"]+))")
+TOKENS = re.compile(r"\b(sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[abpr]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16})\b")
+
+
+def _keyed(m):
+    if m.group(3):                                  # quoted: keep the quotes
+        return f"{m.group(1)}{m.group(2)}{m.group(3)}<redacted>{m.group(3)}"
+    return f"{m.group(1)}{m.group(2)}<redacted>"
 
 
 def redact(text):
     """Best effort: values that look like credentials never leave the machine."""
-    for pat, repl in SECRET_PATTERNS:
-        text = pat.sub(repl, text)
-    return text
+    text = BEARER.sub(r"\1 <redacted>", text)
+    text = KEYED.sub(_keyed, text)
+    return TOKENS.sub("<redacted>", text)
 
 
 def last_reply_from_transcript(path):
@@ -394,6 +405,13 @@ def run_hook(argv):
     kind, content = event_from_hook(d)
     if not kind:
         return 0
+    session = d.get("session_id") or ""
+    if kind == "user_prompt":
+        # a new turn: a reply blocked in the last turn may be blocked again
+        st = load_state(pdir, session)
+        if st.get("reply_blocks"):
+            st["reply_blocks"] = []
+            save_state(pdir, session, st)
     procs, _ = load_procedures(pdir)
     cands = eligible(procs, kind)
     if not cands:
@@ -405,7 +423,6 @@ def run_hook(argv):
             sys.stdout.buffer.write(out)
         return 0                                       # a hook always exits 0
     content = redact(clip(content))
-    session = d.get("session_id") or ""
     rec = {"ts": datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "session": session,
            "kind": kind, "eligible": [p["name"] for p in cands],
            "sha": hashlib.sha256(content.encode("utf-8")).hexdigest()[:16], "preview": content[:120]}
@@ -422,9 +439,9 @@ def run_hook(argv):
     if proc and action != "none":
         st = load_state(pdir, session)
         if kind == "reply":
-            turn = f"{d.get('prompt_id', '')}:{proc['name']}"
-            if action == "fire" and not d.get("stop_hook_active") and turn not in st["reply_blocks"]:
-                st["reply_blocks"] = (st["reply_blocks"] + [turn])[-50:]
+            # at most once per turn: reply_blocks is emptied by the next user message
+            if action == "fire" and not d.get("stop_hook_active") and proc["name"] not in st["reply_blocks"]:
+                st["reply_blocks"] = st["reply_blocks"] + [proc["name"]]
                 out = {"decision": "block", "reason": reply_block_text(proc, p)}
                 rec["action"] = "block"
             else:
