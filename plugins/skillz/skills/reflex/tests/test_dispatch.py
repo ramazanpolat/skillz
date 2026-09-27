@@ -236,6 +236,25 @@ class Request(Base):
         for secret in ("abc123", "s3cr3t-one", "two words"):
             self.assertNotIn(secret, prev)
 
+    def test_more_credential_forms(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("dispatch", DISPATCH)
+        d = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(d)
+        leaks = {
+            "mysql --password mysecret1 -e x": "mysecret1",
+            "cli --token=abc123def --x": "abc123def",
+            "git clone https://user:s3cr3t@github.com/x/y": "s3cr3t",
+            "password: my multi word pass": "multi word pass",
+        }
+        for text, secret in leaks.items():
+            self.assertNotIn(secret, d.redact(text), text)
+        # structure is kept: no bracket eaten, the rest of the line intact
+        self.assertEqual(d.redact('{"password": {"abc": 1}}'), '{"password": {"abc": 1}}')
+        self.assertEqual(d.redact('{"token": 123, "n": 2}'), '{"token": <redacted>, "n": 2}')
+        self.assertEqual(d.redact("export pwd=abc next"), "export pwd=<redacted> next")
+        self.assertIn("github.com/x/y", d.redact("git clone https://user:s3cr3t@github.com/x/y"))
+
     def test_event_kinds(self):
         self.config()
         self.proc("open-pr", OPEN_PR)
@@ -354,6 +373,34 @@ class Reply(Base):
             f.write(json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "Head is abc."}]}}) + "\n")
         self.hook({"hook_event_name": "Stop", "session_id": "s1", "transcript_path": tp})
         self.assertEqual(self.jev.requests[-1]["body"]["state"]["content"], "Head is abc.")
+
+
+class State(Base):
+    def test_an_old_or_broken_state_file_is_repaired(self):
+        self.config()
+        self.proc("report-pr-state", REPORT)
+        os.makedirs(os.path.join(self.pdir, ".state"))
+        with open(os.path.join(self.pdir, ".state", "s1.json"), "w") as f:
+            f.write('{"fired": {}}')                                   # no reply_blocks
+        self.jev.answers.append(("report-pr-state", {"report-pr-state": 0.97, "none": 0.03}))
+        self.assertEqual(self.hook(stop("Head is 5b5d8e9."))["decision"], "block")
+        with open(os.path.join(self.pdir, ".state", "s1.json"), "w") as f:
+            f.write("[1, 2]")                                          # not an object
+        self.hook(prompt("next"))
+        self.jev.answers.append(("report-pr-state", {"report-pr-state": 0.97, "none": 0.03}))
+        self.assertEqual(self.hook(stop("Head is 5b5d8e9."))["decision"], "block")
+
+    def test_concurrent_writers_leave_valid_state(self):
+        self.config()
+        self.proc("open-pr", OPEN_PR)
+        self.jev.answers += [("open-pr", {"open-pr": 0.95, "none": 0.05})] * 8
+        procs = [subprocess.Popen([sys.executable, DISPATCH, "hook"], stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE, env=self.env) for _ in range(8)]
+        for p in procs:
+            p.communicate(json.dumps(bash("gh pr create")).encode(), timeout=30)
+        with open(os.path.join(self.pdir, ".state", "s1.json")) as f:
+            self.assertIsInstance(json.load(f), dict)
+        self.assertEqual([fn for fn in os.listdir(os.path.join(self.pdir, ".state")) if fn.endswith(".tmp")], [])
 
 
 class FailOpen(Base):

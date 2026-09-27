@@ -64,7 +64,9 @@ Other tools never reach the dispatcher. Text longer than 4000 characters is
 clipped to its first and last 2000. Before sending, values that look like
 credentials are replaced with `<redacted>`: `Bearer <token>`,
 `password` / `passwd` / `pwd` / `token` / `secret` / `api_key` / `authorization`
-values after `=` or `:` (bare, quoted, or as a JSON value), and
+values after `=` (to the next space) or `:` (to the end of the line), quoted
+or bare or as a JSON value; `--password` / `--token` / `--secret` / `--api-key`
+flag values; the password in `scheme://user:password@host`; and
 `sk-...`, `ghp_...`, `xox?-...`, `AKIA...` strings. This is best effort, not a
 guarantee: do not put secret values in commands at all.
 

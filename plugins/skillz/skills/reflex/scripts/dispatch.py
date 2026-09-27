@@ -179,23 +179,39 @@ def clip(text, limit=MAX_CONTENT):
 
 
 BEARER = re.compile(r"(?i)\b(bearer)\s+[A-Za-z0-9._~+/=-]{8,}")
+_KEY = r"(password|passwd|pwd|token|secret|api[_-]?key|authorization)"
 # key, then = or : (a JSON key's closing quote allowed), then a value that is
-# quoted ('...' or "...", spaces included) or bare
-KEYED = re.compile(r"(?i)\b(password|passwd|pwd|token|secret|api[_-]?key|authorization)"
-                   r"([\"']?\s*[=:]\s*)"
-                   r"(?:(\"|')(.*?)\3|([^\s'\"]+))")
+# quoted ('...' or "...", spaces included), or bare. A bare value after `:`
+# (YAML, a header) runs to the end of the line; after `=` (shell) to the next
+# space. Bare values never start with a JSON bracket, and stop at , } ] ;
+KEYED = re.compile(r"(?i)\b" + _KEY + r"([\"']?\s*([=:])\s*)"
+                   r"(?:(\"|')(.*?)\4|(?![{\[])([^\s'\"{}\[\],;][^'\"{}\[\],;\n]*|[^\s'\"{}\[\],;]+))")
+FLAG = re.compile(r"(?i)(--(?:password|passwd|token|secret|api-key|apikey|auth-token)(?:=|\s+))(?:(\"|')(.*?)\2|[^\s'\"]+)")
+USERINFO = re.compile(r"(\b[a-z][a-z0-9+.-]*://[^/\s:@]+):[^@\s/]+@", re.I)
 TOKENS = re.compile(r"\b(sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[abpr]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16})\b")
 
 
 def _keyed(m):
-    if m.group(3):                                  # quoted: keep the quotes
-        return f"{m.group(1)}{m.group(2)}{m.group(3)}<redacted>{m.group(3)}"
-    return f"{m.group(1)}{m.group(2)}<redacted>"
+    key, sep, op = m.group(1), m.group(2), m.group(3)
+    if m.group(4):                                  # quoted: keep the quotes
+        return f"{key}{sep}{m.group(4)}<redacted>{m.group(4)}"
+    value = m.group(6)
+    if op == "=":                                   # shell style: the value ends at a space
+        rest = value.split(None, 1)
+        return f"{key}{sep}<redacted>" + (value[len(rest[0]):] if rest else "")
+    return f"{key}{sep}<redacted>"                  # YAML / header: to the end of the line
+
+
+def _flag(m):
+    q = m.group(2) or ""
+    return f"{m.group(1)}{q}<redacted>{q}"
 
 
 def redact(text):
     """Best effort: values that look like credentials never leave the machine."""
     text = BEARER.sub(r"\1 <redacted>", text)
+    text = USERINFO.sub(r"\1:<redacted>@", text)
+    text = FLAG.sub(_flag, text)
     text = KEYED.sub(_keyed, text)
     return TOKENS.sub("<redacted>", text)
 
@@ -323,24 +339,32 @@ def state_path(pdir, session):
 def load_state(pdir, session):
     try:
         with open(state_path(pdir, session), encoding="utf-8") as f:
-            return json.load(f)
+            st = json.load(f)
+        if not isinstance(st, dict):
+            raise ValueError("state is not an object")
     except (OSError, ValueError):
-        return {"fired": {}, "reply_blocks": []}
+        st = {}
+    if not isinstance(st.get("fired"), dict):
+        st["fired"] = {}
+    if not isinstance(st.get("reply_blocks"), list):
+        st["reply_blocks"] = []
+    return st
 
 
 def save_state(pdir, session, st):
     path = state_path(pdir, session)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
+    tmp = f"{path}.{os.getpid()}.tmp"            # per writer: concurrent hooks never share one
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(st, f)
     os.replace(tmp, path)
-    # opportunistic cleanup: state older than 7 days
+    # opportunistic cleanup: state older than 7 days, and temp files older than 1 hour
     try:
-        cutoff = time.time() - 7 * 86400
+        now = time.time()
         for fn in os.listdir(os.path.dirname(path)):
             fp = os.path.join(os.path.dirname(path), fn)
-            if os.path.getmtime(fp) < cutoff:
+            age = now - os.path.getmtime(fp)
+            if age > 7 * 86400 or (fn.endswith(".tmp") and age > 3600):
                 os.remove(fp)
     except OSError:
         pass
