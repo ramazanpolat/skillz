@@ -1,0 +1,8 @@
+[
+ ["bash", "ssh tr0 'pkill -TERM -f \"kp-test/kp-gate.sh\"'", "remote-kill"],
+ ["bash", "ssh prod 'killall -9 node'", "remote-kill"],
+ ["bash", "ssh gpu 'pkill -f vllm'", "remote-kill"],
+ ["bash", "pkill -f 'python3 -m http.server'", "none"],
+ ["bash", "ssh testbed 'systemctl restart nginx'", "none"],
+ ["bash", "ssh tr0 'pgrep -fa \"[k]p-gate\"'", "none"]
+]

@@ -1,0 +1,15 @@
+{
+  "description": "reflex procedures: on each eligible event, TypeSafe's Jev decides whether a standing procedure applies, and which; a confident match injects its steps. Opt-in per config dir: a no-op unless <config>/procedures/config.json exists.",
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/reflex/scripts/hook.sh\"", "timeout": 10 } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|SendMessage",
+        "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/reflex/scripts/hook.sh\"", "timeout": 10 } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/reflex/scripts/hook.sh\"", "timeout": 10 } ] }
+    ]
+  }
+}

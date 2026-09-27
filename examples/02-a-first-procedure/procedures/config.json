@@ -1,0 +1,8 @@
+{
+  "engine": "jev",
+  "model": "jev-latest",
+  "fire": 0.8,
+  "hint": 0.5,
+  "timeout_s": 2.5,
+  "key_ref": "keychain:typesafe"
+}
