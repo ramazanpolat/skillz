@@ -132,6 +132,28 @@ workspaces and tabs. Active when `HERDR_ENV=1`.
 > license with attribution — which is why this whole repo is AGPL (see
 > [License](../../README.md#license)). Upstream: https://github.com/ogulcancelik/herdr.
 
+### herdr-snapshot
+
+Pairs the `herdr` skill with the Kommander playbook's task locks to answer what
+herdr alone can't: which playbook, task and resumable session each pane was
+running. **Save** writes one markdown table per herdr session: every workspace,
+tab and pane, matched to its task by tab title (exact, then fuzzy), then by cwd or
+`.worktree` against the currently locked tasks, with lock recency breaking ties
+between playbook installs. **Restore** recreates the layout in a new or existing
+herdr session and relaunches the resumable panes with `claude --resume
+<session>` in batches of about six, checking real memory health (free percentage
+and swap used) between batches, answering the two first-run trust dialogs that
+default to declining, and skipping any session already running elsewhere.
+
+**No scripts ship with it, on purpose.** An earlier version packaged the matching
+and restore logic as Python, and review found its bugs shared one cause: hardcoded
+assumptions (a drifted `herdr` subcommand name, a memory check that failed open)
+that cannot react to the live host. The agent runs the recipe itself and checks
+every `herdr` subcommand against `herdr <group> --help` before trusting it.
+
+**Prerequisites:** the `herdr` skill (`HERDR_ENV=1`) and at least one Kommander
+playbook install under `~/.claude-playbooks/`.
+
 ### test-on-sprite
 
 Runs a target repo's installer and suite inside a **Sprite VM** ([sprites.dev](https://sprites.dev/))

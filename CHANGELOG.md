@@ -3,6 +3,24 @@
 Notable changes to skillz. Versions match `plugin.json` and the git tags;
 releases before v0.9.0 are described in their commits.
 
+## [v0.10.0] -- 2026-10-02
+
+### Added -- herdr-snapshot
+
+A new skill, **herdr-snapshot**: save a herdr session's whole layout together
+with the Kommander playbook, task and resumable session id behind each pane, and
+recreate that layout elsewhere with `claude --resume <session>` fired into each
+pane, for bringing a fleet of agents back after a crash, OOM kill or reboot.
+
+- **Save** matches each tab to its task by title, then by cwd or `.worktree`
+  against the locked tasks (anchored, capped when the cwd is too generic), and
+  writes one markdown table that the restore step reads back.
+- **Restore** relaunches in batches of about six, watches memory pressure and
+  swap between batches, answers the two first-run trust dialogs, and never
+  resumes a session that is already running.
+- **No scripts.** The agent runs the recipe live; an earlier scripted version
+  was dropped after review (PR #13).
+
 ## [v0.9.0] -- 2026-09-27
 
 ### Added -- reflex procedures: Jev decides when, and which
