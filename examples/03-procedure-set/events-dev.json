@@ -1,0 +1,152 @@
+[
+ [
+  "bash",
+  "gh pr create --base main --head claude/vendor-runtime --title \"v3.14.0: vendor the runtime\" -F body.md",
+  "open-pr"
+ ],
+ [
+  "bash",
+  "./release.sh v0.1.0",
+  "release"
+ ],
+ [
+  "bash",
+  "git tag -a v3.14.0 -m 'Kommander v3.14.0' HEAD",
+  "release"
+ ],
+ [
+  "bash",
+  "ssh tr0 'pkill -TERM -f \"kp-test/kp-gate.sh\"; podman rm -f -v kp-gate-ch'",
+  "remote-kill"
+ ],
+ [
+  "bash",
+  "ls -la ~/DEV/.worktrees/kommander-playbook",
+  "none"
+ ],
+ [
+  "bash",
+  "git push -q origin claude/vendor-runtime",
+  "none"
+ ],
+ [
+  "message",
+  "PR B is open as kommander-playbook#16. Head is ac88c7e, MERGEABLE. Don't merge yet.",
+  "report-pr-state"
+ ],
+ [
+  "write",
+  "file: ~/.pilot-profile/peripherals/tr0.md -- tr0: Debian 13 VM, 8 vCPU / 20 GB RAM, ssh tr0 over Tailscale",
+  "profile-capture"
+ ],
+ [
+  "bash",
+  "curl -u admin:$(cat ~/pw.txt) https://grafana.santiment.net/api/dashboards",
+  "secret-needed"
+ ],
+ [
+  "bash",
+  "open 'https://github.com/login/device'",
+  "gui-step"
+ ],
+ [
+  "user_prompt",
+  "check the size of CLAUDE.md files of my playbooks",
+  "none"
+ ],
+ [
+  "user_prompt",
+  "ok, tag it and cut the release",
+  "release"
+ ],
+ [
+  "user_prompt",
+  "open a PR for this",
+  "open-pr"
+ ],
+ [
+  "user_prompt",
+  "save that tr0 has 20 GB RAM to my profile",
+  "profile-capture"
+ ],
+ [
+  "user_prompt",
+  "log in to the Santiment Grafana in the browser and check the dashboard",
+  "gui-step"
+ ],
+ [
+  "user_prompt",
+  "what's the head of #16?",
+  "none"
+ ],
+ [
+  "reply",
+  "Pushed. Head is 5b5d8e9, MERGEABLE. Ready for your merge.",
+  "report-pr-state"
+ ],
+ [
+  "bash",
+  "gh pr view 16 --json headRefOid,mergeable",
+  "none"
+ ],
+ [
+  "bash",
+  "git log --oneline -5 origin/main",
+  "none"
+ ],
+ [
+  "bash",
+  "grep -n '^## \\[v3.14.0\\]' CHANGELOG.md",
+  "none"
+ ],
+ [
+  "bash",
+  "pkill -f 'python3 -m http.server'",
+  "none"
+ ],
+ [
+  "bash",
+  "gh pr list --state open",
+  "none"
+ ],
+ [
+  "bash",
+  "with-secret TYPESAFE_API_KEY=keychain:typesafe -- python3 colors.py",
+  "none"
+ ],
+ [
+  "bash",
+  "git tag -l 'v3.1*' --sort=v:refname",
+  "none"
+ ],
+ [
+  "user_prompt",
+  "why did you tag it before the gate finished?",
+  "none"
+ ],
+ [
+  "user_prompt",
+  "don't open a PR yet, just push the branch",
+  "none"
+ ],
+ [
+  "user_prompt",
+  "how does release.sh check the docs standard?",
+  "none"
+ ],
+ [
+  "user_prompt",
+  "is it possible to colorize your responses?",
+  "none"
+ ],
+ [
+  "reply",
+  "The palette has seven colors; red is minus or harm, green is plus or good.",
+  "none"
+ ],
+ [
+  "reply",
+  "I read back the head with gh pr view: 0badbc5, MERGEABLE.",
+  "none"
+ ]
+]
