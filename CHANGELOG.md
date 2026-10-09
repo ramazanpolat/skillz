@@ -3,6 +3,16 @@
 Notable changes to skillz. Versions match `plugin.json` and the git tags;
 releases before v0.9.0 are described in their commits.
 
+## [Unreleased]
+
+### Changed -- licence
+
+Relicensed from AGPL-3.0-or-later to Apache-2.0 (the owner's decision,
+2026-10-10). `plugins/skillz/skills/herdr/SKILL.md`, a modified version of
+herdr's agent skill, stays AGPL-3.0-or-later; its text moved to
+`LICENSES/AGPL-3.0-or-later.txt`, and the grilling skill's MIT notice is in
+`LICENSES/MIT-mattpocock-skills.txt`. 0.10.0 and earlier keep AGPL-3.0-or-later.
+
 ## [v0.10.0] -- 2026-10-02
 
 ### Added -- herdr-snapshot

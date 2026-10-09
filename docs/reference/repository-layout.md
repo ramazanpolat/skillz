@@ -5,8 +5,9 @@ skillz/
 ├── README.md                          # what, why, how; the skills index
 ├── AGENTS.md                          # for agents: install, verify, update, release
 ├── CHANGELOG.md
-├── LICENSE                            # AGPL-3.0-or-later (full text)
-├── NOTICE                             # third-party attribution (herdr, grilling)
+├── LICENSE                            # Apache-2.0 (full text)
+├── NOTICE                             # copyright; third-party material (herdr, grilling)
+├── LICENSES/                          # the third-party licences: AGPL-3.0-or-later (herdr), MIT (grilling)
 ├── release.sh                         # checks, then tags vX.Y.Z (maintainer)
 ├── .claude-plugin/
 │   └── marketplace.json               # marketplace manifest -> lists the skillz plugin
@@ -34,7 +35,7 @@ skillz/
             │   ├── SKILL.md
             │   └── scripts/transfer.sh
             ├── claude-ai-archive/     # SKILL.md, config.json, lib/, scripts/
-            ├── herdr/                 # MODIFIED fork of herdr's skill (AGPL-3.0)
+            ├── herdr/                 # MODIFIED fork of herdr's skill (stays AGPL-3.0-or-later)
             ├── sdlc-jev/              # SKILL.md, gates.json, scripts/gate.py
             └── ...                    # one folder per remaining skill
 ```

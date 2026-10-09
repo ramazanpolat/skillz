@@ -40,7 +40,7 @@ step back", "from now on, whenever I open a PR, ..."), or call a skill by name
 | [`sprite`](plugins/skillz/skills/sprite/SKILL.md) | Sprite ([sprites.dev](https://sprites.dev/)) VM environment agent: services, checkpoints/restores, dev servers, and network policy via the in-VM `sprite-env` CLI. |
 | [`sprite-api-gateway`](plugins/skillz/skills/sprite-api-gateway/SKILL.md) | Access external APIs (GitHub, Slack, Linear, …) from a Sprite through the authenticated `api.sprites.dev` gateway — no raw API keys. |
 | [`test-on-sprite`](plugins/skillz/skills/test-on-sprite/SKILL.md) | Test a repo in a disposable Sprite VM: provision a sprite per target, authenticate Claude + GitHub, checkpoint a reset point, then clone at a branch and run install/tests — driven through a live herdr console pane. |
-| [`herdr`](plugins/skillz/skills/herdr/SKILL.md) | Control herdr (terminal-native agent multiplexer) from inside it. **Modified fork** of herdr's own skill (AGPL-3.0) with corrected pane self-identification. See [License](#license). |
+| [`herdr`](plugins/skillz/skills/herdr/SKILL.md) | Control herdr (terminal-native agent multiplexer) from inside it. **Modified fork** of herdr's own skill with corrected pane self-identification; this file stays AGPL-3.0-or-later. See [License](#license). |
 | [`reflex`](plugins/skillz/skills/reflex/SKILL.md) | Standing "whenever X happens, do Y" instructions that fire on their own. **jev engine:** each is a procedure file, and a hook asks TypeSafe's Jev on every eligible event whether one applies, then injects its steps; nothing sits in the prompt. **prompt engine:** entries in a `REFLEXES.md` that `CLAUDE.md` imports. |
 | [`whetstone`](plugins/skillz/skills/whetstone/SKILL.md) | Adversarial cross-agent review loop: open a PR, have Codex review it, fix **every** finding, re-request, repeat — and merge only on a round that returns clean. |
 | [`grilling`](plugins/skillz/skills/grilling/SKILL.md) | Interview the user relentlessly about a plan, decision, or idea — round-by-round design-tree questioning — to stress-test their thinking before acting on it. Imported from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). |
@@ -60,18 +60,20 @@ step back", "from now on, whenever I open a PR, ..."), or call a skill by name
 
 ## License
 
-**AGPL-3.0-or-later** (see [`LICENSE`](LICENSE)).
+**Apache-2.0** (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)), with one
+exception below. Relicensed from AGPL-3.0-or-later to Apache-2.0 from the first
+release after 0.10.0 (main from 2026-10-10); 0.10.0 and earlier releases keep
+AGPL-3.0-or-later.
 
-This repository bundles a modified version of herdr's agent skill
-(`plugins/skillz/skills/herdr/`), which is licensed AGPL-3.0-or-later. Because
-the repo redistributes that copyleft work, the repository as a whole is
-distributed under AGPL-3.0-or-later. Third-party attribution and the list of
-modifications are in [`NOTICE`](NOTICE).
-
-herdr is dual-licensed (AGPL or commercial); the original project is at
+**The exception:** `plugins/skillz/skills/herdr/SKILL.md` is a modified version
+of herdr's agent skill and stays **AGPL-3.0-or-later**
+([`LICENSES/AGPL-3.0-or-later.txt`](LICENSES/AGPL-3.0-or-later.txt)). It is a
+separate work in this repository; its licence does not extend to the other
+files. herdr is dual-licensed (AGPL or commercial); the original project is at
 https://github.com/ogulcancelik/herdr. No warranty.
 
 This repository also bundles, unmodified, the `grilling` skill from
 [mattpocock/skills](https://github.com/mattpocock/skills)
 (`plugins/skillz/skills/grilling/`), Copyright (c) 2026 Matt Pocock, licensed
-MIT. MIT permits redistribution under AGPL-3.0-or-later; see [`NOTICE`](NOTICE).
+MIT ([`LICENSES/MIT-mattpocock-skills.txt`](LICENSES/MIT-mattpocock-skills.txt)).
+MIT permits redistribution under Apache-2.0; see [`NOTICE`](NOTICE).

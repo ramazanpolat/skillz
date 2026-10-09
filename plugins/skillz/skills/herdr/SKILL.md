@@ -16,7 +16,11 @@ Modifications by Ramazan Polat, 2026-06-30:
   - split example targets $HERDR_PANE_ID instead of a literal pane id.
   - added a notes bullet distinguishing UI focus from the calling pane.
 
-This modified file is distributed under AGPL-3.0-or-later. See ../../../../LICENSE.
+Modifications by Ramazan Polat, 2026-10-10:
+  - the licence pointer below names LICENSES/AGPL-3.0-or-later.txt (the rest of
+    the repository moved to Apache-2.0; this file did not).
+
+This modified file is distributed under AGPL-3.0-or-later. See ../../../../LICENSES/AGPL-3.0-or-later.txt.
 -->
 
 
