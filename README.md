@@ -60,14 +60,14 @@ step back", "from now on, whenever I open a PR, ..."), or call a skill by name
 
 ## License
 
-**Apache-2.0** (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)), with one
-exception below. Relicensed from AGPL-3.0-or-later to Apache-2.0 from the first
+**Apache-2.0** (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE); both also ship
+inside the plugin), with one exception below. Relicensed from AGPL-3.0-or-later to Apache-2.0 from the first
 release after 0.10.0 (main from 2026-10-10); 0.10.0 and earlier releases keep
 AGPL-3.0-or-later.
 
 **The exception:** `plugins/skillz/skills/herdr/SKILL.md` is a modified version
-of herdr's agent skill and stays **AGPL-3.0-or-later**
-([`LICENSES/AGPL-3.0-or-later.txt`](LICENSES/AGPL-3.0-or-later.txt)). It is a
+of herdr's agent skill and stays **AGPL-3.0-or-later**; its full text ships
+beside it ([`skills/herdr/LICENSE`](plugins/skillz/skills/herdr/LICENSE)). It is a
 separate work in this repository; its licence does not extend to the other
 files. herdr is dual-licensed (AGPL or commercial); the original project is at
 https://github.com/ogulcancelik/herdr. No warranty.
@@ -75,5 +75,5 @@ https://github.com/ogulcancelik/herdr. No warranty.
 This repository also bundles, unmodified, the `grilling` skill from
 [mattpocock/skills](https://github.com/mattpocock/skills)
 (`plugins/skillz/skills/grilling/`), Copyright (c) 2026 Matt Pocock, licensed
-MIT ([`LICENSES/MIT-mattpocock-skills.txt`](LICENSES/MIT-mattpocock-skills.txt)).
+MIT ([`skills/grilling/LICENSE`](plugins/skillz/skills/grilling/LICENSE)).
 MIT permits redistribution under Apache-2.0; see [`NOTICE`](NOTICE).

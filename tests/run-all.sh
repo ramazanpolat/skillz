@@ -19,6 +19,24 @@ assert m["metadata"]["version"] == p["version"], (m["metadata"]["version"], p["v
 assert set(h["hooks"]) == {"UserPromptSubmit", "PreToolUse", "Stop"}, h["hooks"].keys()
 print(f"manifests: version {p['version']} in both; hooks.json valid")
 PY
+run python3 - <<'PY'
+import hashlib
+# An installed plugin is only plugins/skillz/, so the licence texts ship inside
+# it: Apache-2.0 (apache.org's text, byte for byte) and NOTICE at its root,
+# identical to the repository's; the AGPL text beside the herdr skill (which
+# stays AGPL-3.0-or-later); the MIT notice beside grilling.
+def read(p):
+    with open(p, "rb") as f:
+        return f.read()
+apache = "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+assert hashlib.sha256(read("LICENSE")).hexdigest() == apache, "LICENSE is not apache.org's Apache-2.0 text"
+assert read("plugins/skillz/LICENSE") == read("LICENSE"), "plugins/skillz/LICENSE differs from LICENSE"
+assert read("plugins/skillz/NOTICE") == read("NOTICE"), "plugins/skillz/NOTICE differs from NOTICE"
+assert b"GNU AFFERO GENERAL PUBLIC LICENSE" in read("plugins/skillz/skills/herdr/LICENSE")[:200], "herdr/LICENSE is not the AGPL"
+assert b"See LICENSE in this directory." in read("plugins/skillz/skills/herdr/SKILL.md"), "herdr/SKILL.md does not point at its AGPL text"
+assert read("plugins/skillz/skills/grilling/LICENSE").startswith(b"MIT License\n\nCopyright (c) 2026 Matt Pocock"), "grilling/LICENSE is not its MIT notice"
+print("licences: Apache-2.0 and NOTICE ship in the plugin; herdr's AGPL and grilling's MIT beside their skills")
+PY
 if command -v claude >/dev/null 2>&1; then
   run claude plugin validate plugins/skillz
   run claude plugin validate .

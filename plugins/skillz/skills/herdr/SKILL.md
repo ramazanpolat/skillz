@@ -17,10 +17,10 @@ Modifications by Ramazan Polat, 2026-06-30:
   - added a notes bullet distinguishing UI focus from the calling pane.
 
 Modifications by Ramazan Polat, 2026-10-10:
-  - the licence pointer below names LICENSES/AGPL-3.0-or-later.txt (the rest of
-    the repository moved to Apache-2.0; this file did not).
+  - the licence pointer below names the full AGPL text, which now ships beside
+    this file (the rest of the plugin moved to Apache-2.0; this file did not).
 
-This modified file is distributed under AGPL-3.0-or-later. See ../../../../LICENSES/AGPL-3.0-or-later.txt.
+This modified file is distributed under AGPL-3.0-or-later. See LICENSE in this directory.
 -->
 
 

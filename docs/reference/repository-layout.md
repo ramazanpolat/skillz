@@ -7,7 +7,6 @@ skillz/
 ├── CHANGELOG.md
 ├── LICENSE                            # Apache-2.0 (full text)
 ├── NOTICE                             # copyright; third-party material (herdr, grilling)
-├── LICENSES/                          # the third-party licences: AGPL-3.0-or-later (herdr), MIT (grilling)
 ├── release.sh                         # checks, then tags vX.Y.Z (maintainer)
 ├── .claude-plugin/
 │   └── marketplace.json               # marketplace manifest -> lists the skillz plugin
@@ -20,6 +19,8 @@ skillz/
     └── skillz/
         ├── .claude-plugin/
         │   └── plugin.json            # plugin manifest (name, version, author)
+        ├── LICENSE                    # Apache-2.0, the root's text (ships with the plugin)
+        ├── NOTICE                     # the root's NOTICE (ships with the plugin)
         ├── README.md
         ├── hooks/
         │   └── hooks.json             # the reflex procedures hook (a no-op unless opted in)
@@ -35,7 +36,7 @@ skillz/
             │   ├── SKILL.md
             │   └── scripts/transfer.sh
             ├── claude-ai-archive/     # SKILL.md, config.json, lib/, scripts/
-            ├── herdr/                 # MODIFIED fork of herdr's skill (stays AGPL-3.0-or-later)
+            ├── herdr/                 # MODIFIED fork of herdr's skill; LICENSE beside it (AGPL-3.0-or-later)
             ├── sdlc-jev/              # SKILL.md, gates.json, scripts/gate.py
             └── ...                    # one folder per remaining skill
 ```
