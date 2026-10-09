@@ -1,8 +1,8 @@
 {
   "name": "skillz",
   "version": "0.10.0",
-  "description": "Ramazan's personal Claude Code skills. Each skill lives under skills/<name>/SKILL.md; add more by dropping in new folders. One hook (hooks/hooks.json) serves the reflex skill's procedures and is a no-op unless a config dir opts in. Includes a modified fork of herdr's AGPL-3.0 skill; the bundle is licensed AGPL-3.0-or-later (see repo LICENSE/NOTICE).",
-  "license": "AGPL-3.0-or-later",
+  "description": "Ramazan's personal Claude Code skills. Each skill lives under skills/<name>/SKILL.md; add more by dropping in new folders. One hook (hooks/hooks.json) serves the reflex skill's procedures and is a no-op unless a config dir opts in. Licensed Apache-2.0, except the herdr skill, a modified fork of herdr's agent skill that stays AGPL-3.0-or-later (see repo LICENSE/NOTICE).",
+  "license": "Apache-2.0 AND AGPL-3.0-or-later",
   "author": {
     "name": "Ramazan Polat",
     "url": "https://github.com/ramazanpolat"

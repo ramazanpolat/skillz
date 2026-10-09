@@ -7,7 +7,7 @@
   "metadata": {
     "description": "Ramazan's personal collection of Claude Code skills.",
     "version": "0.10.0",
-    "license": "AGPL-3.0-or-later"
+    "license": "Apache-2.0 AND AGPL-3.0-or-later"
   },
   "plugins": [
     {

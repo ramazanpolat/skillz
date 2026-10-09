@@ -128,8 +128,8 @@ workspaces and tabs. Active when `HERDR_ENV=1`.
 > flag follow the **user's UI focus**, not the calling shell, so splits land in
 > the wrong workspace. This fork teaches self-identification via `$HERDR_PANE_ID`
 > and `herdr pane current` and passes explicit pane ids. herdr is licensed
-> **AGPL-3.0-or-later**; this modified copy is redistributed under the same
-> license with attribution — which is why this whole repo is AGPL (see
+> **AGPL-3.0-or-later**; this modified copy stays under the same licence with
+> attribution, while the rest of the repository is Apache-2.0 (see
 > [License](../../README.md#license)). Upstream: https://github.com/ogulcancelik/herdr.
 
 ### herdr-snapshot

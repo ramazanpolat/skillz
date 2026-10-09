@@ -27,10 +27,11 @@ under `skills/<name>/SKILL.md`.
   at a branch and run install/tests, driven through a live herdr console pane.
   See [`skills/test-on-sprite/SKILL.md`](skills/test-on-sprite/SKILL.md).
 - **herdr** — control herdr (terminal-native agent multiplexer) from inside it.
-  A **modified fork** of herdr's own skill (AGPL-3.0-or-later) with corrected pane
+  A **modified fork** of herdr's own skill with corrected pane
   self-identification (`$HERDR_PANE_ID` / `herdr pane current` instead of
-  `focused` / `--current`). See [`skills/herdr/SKILL.md`](skills/herdr/SKILL.md)
-  and the repo `NOTICE` / `LICENSE`.
+  `focused` / `--current`). This one file stays AGPL-3.0-or-later; the rest of
+  the plugin is Apache-2.0. See [`skills/herdr/SKILL.md`](skills/herdr/SKILL.md)
+  and its `LICENSE` beside it, plus this plugin's `NOTICE`.
 - **reflex** — standing "whenever X happens, do Y" instructions that fire on their
   own in later sessions. Two engines: **jev**, where each instruction is a
   procedure file and the plugin's hook (`hooks/hooks.json`) asks TypeSafe's Jev on
