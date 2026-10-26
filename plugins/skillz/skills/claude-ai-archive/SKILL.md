@@ -69,7 +69,7 @@ browser-harness < scripts/harvest.py
 
 (browser-harness takes the script on stdin; it has no `-c` flag.)
 
-The script opens one logged-in claude.ai tab and uses the internal API — `/api/organizations/<org>/projects` plus paginated `/api/organizations/<org>/chat_conversations`, where every conversation record carries its `project_uuid` — to rebuild `<archive-root>/_phase2_mapping.json`. No per-project page navigation. If the account has multiple organizations, it picks the one whose projects overlap the archive's project uuids.
+The script opens a claude.ai tab of its own (closed when it finishes; tabs the user has open are left alone) and uses the internal API — `/api/organizations/<org>/projects` plus paginated `/api/organizations/<org>/chat_conversations`, where every conversation record carries its `project_uuid` — to rebuild `<archive-root>/_phase2_mapping.json`. No per-project page navigation. If the account has multiple organizations, it picks the one whose projects overlap the archive's project uuids.
 
 Projects that exist on claude.ai but not in the archive are written under `new_projects_discovered` for the user to inspect; archive projects missing from claude.ai are listed under `errors`.
 

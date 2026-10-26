@@ -81,7 +81,12 @@ def write_project(p: dict, memory: str, archive_root: Path,
         wanted = set()
         seen: Counter = Counter()
         for d in docs:
-            fn = d.get("filename", "untitled.txt")
+            fn = d.get("filename") or "untitled.txt"
+            # A filename can carry a path ("notes/plan.md"). Flatten it so the
+            # doc lands in docs/ itself, never in a subdirectory or above it.
+            fn = fn.replace("/", "__").replace("\\", "__")
+            if fn in (".", ".."):
+                fn = "untitled.txt"
             stem, ext = Path(fn).stem, Path(fn).suffix or ".md"
             seen[fn] += 1
             if seen[fn] > 1:

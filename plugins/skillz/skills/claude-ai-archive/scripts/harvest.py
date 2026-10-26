@@ -1,12 +1,12 @@
 # claude-ai-archive — harvest script (API-based).
 # Recovers conversation→project membership from claude.ai's internal API:
-# one logged-in tab, a handful of same-origin fetches. No per-project page
-# navigation.
+# one logged-in tab of its own, a handful of same-origin fetches. No per-project
+# page navigation. The tab is closed when the fetches end; tabs the user has
+# open are never reused or navigated.
 #
 # Invoke as:  browser-harness < path/to/harvest.py
 #
-# Helpers (new_tab, wait_for_load, js, ensure_real_tab) are pre-imported by
-# browser-harness.
+# Helpers (new_tab, wait_for_load, js, cdp) are pre-imported by browser-harness.
 import datetime as dt
 import json
 import os
@@ -47,47 +47,54 @@ def api(path):
     raise RuntimeError(f"{path}: timeout")
 
 
-# One tab on claude.ai for same-origin API access; smoke-test login state.
-ensure_real_tab()
-if not js("return /claude\\.ai/.test(location.host)"):
-    new_tab("https://claude.ai/recents")
+# A claude.ai tab of our own for same-origin API access; smoke-test login state.
+# Opened fresh rather than picking up whatever tab is current, which may be one
+# the user is working in.
+tab = new_tab("https://claude.ai/recents")
+try:
     wait_for_load()
     time.sleep(1.5)
-if js("return /login/.test(location.pathname)"):
-    raise SystemExit("not logged into claude.ai (redirected to /login). Log in via Chrome and retry.")
+    if js("return /login/.test(location.pathname)"):
+        raise SystemExit("not logged into claude.ai (redirected to /login). Log in via Chrome and retry.")
 
-orgs = api("/api/organizations")
-if not isinstance(orgs, list) or not orgs:
-    raise SystemExit(f"unexpected /api/organizations response: {str(orgs)[:300]}")
+    orgs = api("/api/organizations")
+    if not isinstance(orgs, list) or not orgs:
+        raise SystemExit(f"unexpected /api/organizations response: {str(orgs)[:300]}")
 
-# Pick the org whose projects overlap the archive's project uuids.
-org_uuid, api_projects = None, []
-if len(orgs) == 1:
-    org_uuid = orgs[0]["uuid"]
-    api_projects = api(f"/api/organizations/{org_uuid}/projects")
-else:
-    best = -1
-    for o in orgs:
-        try:
-            projs = api(f"/api/organizations/{o['uuid']}/projects")
-        except RuntimeError:
-            continue
-        overlap = sum(1 for p in projs if p["uuid"] in archive_projects)
-        if overlap > best:
-            best, org_uuid, api_projects = overlap, o["uuid"], projs
-print(f"org: {org_uuid}, projects on claude.ai: {len(api_projects)}")
+    # Pick the org whose projects overlap the archive's project uuids.
+    org_uuid, api_projects = None, []
+    if len(orgs) == 1:
+        org_uuid = orgs[0]["uuid"]
+        api_projects = api(f"/api/organizations/{org_uuid}/projects")
+    else:
+        best = -1
+        for o in orgs:
+            try:
+                projs = api(f"/api/organizations/{o['uuid']}/projects")
+            except RuntimeError:
+                continue
+            overlap = sum(1 for p in projs if p["uuid"] in archive_projects)
+            if overlap > best:
+                best, org_uuid, api_projects = overlap, o["uuid"], projs
+    print(f"org: {org_uuid}, projects on claude.ai: {len(api_projects)}")
 
-# Fetch every conversation; each carries its project_uuid.
-convs, offset = [], 0
-while True:
-    page = api(f"/api/organizations/{org_uuid}/chat_conversations?limit=100&offset={offset}")
-    if not isinstance(page, list):
-        raise SystemExit(f"unexpected conversations response at offset {offset}: {str(page)[:300]}")
-    convs.extend(page)
-    if len(page) < 100:
-        break
-    offset += 100
-print(f"conversations on claude.ai: {len(convs)}")
+    # Fetch every conversation; each carries its project_uuid.
+    convs, offset = [], 0
+    while True:
+        page = api(f"/api/organizations/{org_uuid}/chat_conversations?limit=100&offset={offset}")
+        if not isinstance(page, list):
+            raise SystemExit(f"unexpected conversations response at offset {offset}: {str(page)[:300]}")
+        convs.extend(page)
+        if len(page) < 100:
+            break
+        offset += 100
+    print(f"conversations on claude.ai: {len(convs)}")
+finally:
+    # Close the tab even when a fetch failed; a close error must not hide that one.
+    try:
+        cdp("Target.closeTarget", targetId=tab)
+    except Exception as e:
+        print(f"could not close the harvest tab: {e}")
 
 # Mapping covers archive-known projects only (refile contract). Projects that
 # exist on claude.ai but not in the archive go to new_projects_discovered;
