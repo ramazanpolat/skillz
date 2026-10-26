@@ -5,6 +5,28 @@ releases before v0.9.0 are described in their commits.
 
 ## [Unreleased]
 
+### Fixed -- claude-ai-archive
+
+- **A project doc whose filename holds a path no longer stops the sync.** The
+  export can name a doc `notes/plan.md`; `write_project` wrote it under
+  `docs/notes/`, which does not exist, and `sync` died with
+  `FileNotFoundError` partway through the projects. Separators now become `__`
+  (`notes__plan.md`), and a bare `.` or `..` becomes `untitled.txt`, so every
+  doc lands in `docs/` itself. Since `__` is longer than a separator, the final
+  name is bounded to 255 UTF-8 bytes, the most a Linux filesystem takes (macOS
+  takes at least that): the stem is trimmed on a character boundary, the
+  extension and any `_N` duplicate suffix are kept, and duplicates are detected
+  on the final name.
+- **The harvest step opens a claude.ai tab of its own and closes it.** It used
+  to adopt the current tab (`ensure_real_tab()`), so its fetches could run in a
+  tab the user was working in, and it left any tab it opened behind. The tab is
+  now closed when the fetches end, failed or not.
+- **Tests.** `tests/test_archive.py` covers both, including names at the
+  255-byte limit, plus the same-name project folders fixed earlier: a project
+  whose name matches an existing project gets its own `-N` folder and never
+  writes into the other one's `CLAUDE.md`. No browser and no network;
+  `tests/run-all.sh` runs it.
+
 ### Changed -- licence
 
 Relicensed from AGPL-3.0-or-later to Apache-2.0 (the owner's decision,

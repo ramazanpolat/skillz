@@ -35,7 +35,7 @@ skillz/
             ├── file-transfer/
             │   ├── SKILL.md
             │   └── scripts/transfer.sh
-            ├── claude-ai-archive/     # SKILL.md, config.json, lib/, scripts/
+            ├── claude-ai-archive/     # SKILL.md, config.json, lib/, scripts/, tests/ (no browser, no network)
             ├── herdr/                 # MODIFIED fork of herdr's skill; LICENSE beside it (AGPL-3.0-or-later)
             ├── sdlc-jev/              # SKILL.md, gates.json, scripts/gate.py
             └── ...                    # one folder per remaining skill

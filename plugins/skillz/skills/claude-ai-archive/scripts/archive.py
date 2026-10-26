@@ -14,7 +14,6 @@ import json
 import re
 import shutil
 import sys
-from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -33,6 +32,22 @@ from common import (  # type: ignore
 
 
 # --- write helpers ---
+
+NAME_MAX = 255  # bytes in one path component on Linux; macOS takes at least that
+
+
+def fit_filename(stem: str, tail: str) -> str:
+    """Return stem + tail, trimming the stem so the UTF-8 name fits NAME_MAX bytes.
+
+    The tail (extension, and any collision suffix) is kept whole. The stem is cut
+    on a character boundary, never inside a multibyte character. A tail too long
+    to be a real extension is trimmed together with the stem.
+    """
+    if len(tail.encode()) > NAME_MAX // 2:
+        stem, tail = stem + tail, ""
+    room = NAME_MAX - len(tail.encode())
+    return stem.encode()[:room].decode("utf-8", "ignore") + tail
+
 
 def write_conversation(conv: dict, target_dir: Path, archived: bool = False) -> Path:
     """Write a .md + .json pair for one conversation, return base path (no ext)."""
@@ -79,15 +94,22 @@ def write_project(p: dict, memory: str, archive_root: Path,
         docs_dir.mkdir(exist_ok=True)
         # Track which doc filenames are in the new export — anything else is stale
         wanted = set()
-        seen: Counter = Counter()
         for d in docs:
-            fn = d.get("filename", "untitled.txt")
-            stem, ext = Path(fn).stem, Path(fn).suffix or ".md"
-            seen[fn] += 1
-            if seen[fn] > 1:
-                fn = f"{stem}_{seen[fn]}{ext}"
-            (docs_dir / fn).write_text(d.get("content", "") or "")
-            wanted.add(fn)
+            fn = d.get("filename") or "untitled.txt"
+            # A filename can carry a path ("notes/plan.md"). Flatten it so the
+            # doc lands in docs/ itself, never in a subdirectory or above it.
+            fn = fn.replace("/", "__").replace("\\", "__")
+            if fn in (".", ".."):
+                fn = "untitled.txt"
+            stem, ext = Path(fn).stem, Path(fn).suffix
+            # Flattening lengthens the name, and trimming can make two names
+            # equal, so the collision check runs on the final, bounded name.
+            name, n = fit_filename(stem, ext), 1
+            while name in wanted:
+                n += 1
+                name = fit_filename(stem, f"_{n}{ext or '.md'}")
+            (docs_dir / name).write_text(d.get("content", "") or "")
+            wanted.add(name)
         for existing in docs_dir.iterdir():
             if existing.name not in wanted:
                 existing.unlink()

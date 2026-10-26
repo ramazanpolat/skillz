@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Offline checks for skillz: reflex dispatcher unit tests, docs links, the
-# manifests, and shellcheck (when installed). --live also runs the procedure-set
-# evals against Jev (needs a TypeSafe key: TYPESAFE_API_KEY, or with-secret with
-# the examples' key_ref).
+# Offline checks for skillz: reflex dispatcher and claude-ai-archive unit tests,
+# docs links, the manifests, and shellcheck (when installed). --live also runs
+# the procedure-set evals against Jev (needs a TypeSafe key: TYPESAFE_API_KEY, or
+# with-secret with the examples' key_ref).
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT" || exit 1
 fail=0
 run() { echo ""; echo "==> $*"; "$@" || { echo "FAILED: $*"; fail=1; }; }
 
 run python3 plugins/skillz/skills/reflex/tests/test_dispatch.py
+run python3 plugins/skillz/skills/claude-ai-archive/tests/test_archive.py
 run python3 tests/docs-links.py
 run python3 - <<'PY'
 import json
