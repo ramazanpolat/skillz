@@ -80,6 +80,57 @@ class WriteProjectDocs(unittest.TestCase):
         self.assertEqual({p.name: p.read_text() for p in (pdir / "docs").iterdir()}, {"a__one.md": "1b"})
 
 
+class WriteProjectDocNameLength(unittest.TestCase):
+    """Flattening lengthens a name; the name written must still fit in 255 bytes."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        (self.root / "projects").mkdir()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def write(self, *filenames):
+        docs = [{"filename": fn, "content": str(i)} for i, fn in enumerate(filenames)]
+        return archive.write_project(project(U1, "Alpha", docs), "", self.root, project_folder_by_uuid(self.root))
+
+    def names(self, pdir):
+        got = {p.name: p.read_text() for p in (pdir / "docs").iterdir()}
+        self.assertTrue(all(len(n.encode()) <= 255 for n in got), [len(n.encode()) for n in got])
+        return got
+
+    def test_backslash_name_at_the_limit_still_writes(self):
+        # 255 bytes as exported, 256 once the backslash becomes "__"
+        fn = "a" * 126 + "\\" + "b" * 125 + ".md"
+        self.assertEqual(len(fn.encode()), 255)
+        self.assertEqual(self.names(self.write(fn)), {"a" * 126 + "__" + "b" * 124 + ".md": "0"})
+
+    def test_slash_name_at_the_limit(self):
+        fits = "d/" + "x" * 249 + ".md"   # 255 bytes once flattened: kept whole
+        over = "e/" + "y" * 250 + ".md"   # 256 once flattened: one stem byte trimmed
+        self.assertEqual(self.names(self.write(fits, over)),
+                         {"d__" + "x" * 249 + ".md": "0", "e__" + "y" * 249 + ".md": "1"})
+
+    def test_a_multibyte_stem_is_cut_on_a_character_boundary(self):
+        two = "notes/" + "ç" * 124 + ".md"    # 2-byte characters, 258 bytes flattened
+        four = "p/" + "😀" * 63 + ".md"       # 4-byte characters, 258 bytes flattened
+        got = self.names(self.write(two, four))
+        # 255 would split a character, so both stop at 254
+        self.assertEqual(got, {"notes__" + "ç" * 122 + ".md": "0", "p__" + "😀" * 62 + ".md": "1"})
+        self.assertEqual(sorted(len(n.encode()) for n in got), [254, 254])
+
+    def test_a_collision_suffix_stays_inside_the_limit(self):
+        same = "z" * 252 + ".md"                                # exactly 255 bytes
+        long1, long2 = "w" * 260 + "1.md", "w" * 260 + "2.md"   # equal once trimmed
+        want = {"z" * 252 + ".md": "0", "z" * 250 + "_2.md": "1", "w" * 252 + ".md": "2", "w" * 250 + "_2.md": "3"}
+        pdir = self.write(same, same, long1, long2)
+        self.assertEqual(self.names(pdir), want)
+        # a re-sync of the same docs lands on the same names and keeps all four
+        self.write(same, same, long1, long2)
+        self.assertEqual(self.names(pdir), want)
+
+
 class WriteProjectFolders(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
