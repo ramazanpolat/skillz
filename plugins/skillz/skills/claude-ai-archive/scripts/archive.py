@@ -274,10 +274,12 @@ def cmd_import(args: argparse.Namespace, *, sync: bool = False) -> None:
         cu = conv["uuid"]
         existing = chat_files.get(cu)
         if existing:
-            # Check updated_at
+            # Unchanged means the stored record equals the export record.
+            # updated_at is not enough: claude.ai adds summaries and renames
+            # chats without bumping it, and a newer export can carry fields an
+            # older one lacked.
             try:
-                exist_data = json.loads(existing[".json"].read_text())
-                if exist_data.get("updated_at") == conv.get("updated_at"):
+                if json.loads(existing[".json"].read_text()) == conv:
                     n_unchanged += 1
                     continue
             except Exception:

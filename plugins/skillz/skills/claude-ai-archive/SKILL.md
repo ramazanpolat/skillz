@@ -51,7 +51,7 @@ Where `<mode>` is `import` or `sync`. The script handles:
 Sync semantics:
 
 - **new chat uuid** → write into `chats-unfiled/YYYY/`; Step 4 will refile it.
-- **chat uuid exists, `updated_at` newer in new export** → overwrite the `.md` + `.json` pair in place; don't move folders.
+- **chat uuid exists, its export record differs from the stored `.json`** → overwrite the `.md` + `.json` pair in place; don't move folders. The whole record is compared, not `updated_at`: claude.ai adds summaries and renames chats without changing it. A newer export that only adds fields refreshes the `.json`, and the `.md` comes out the same.
 - **chat uuid exists in archive but missing from new export** → add `archived: true` to the `.md` frontmatter (do not delete).
 - **new project** → create `projects/<slug>/CLAUDE.md` + empty `chats/` + `docs/`.
 - **project description / memory / prompt_template / docs changed** → overwrite `CLAUDE.md` and `docs/<filename>`.

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Unit tests for claude-ai-archive's project writer and harvest script.
+"""Unit tests for claude-ai-archive's project writer, sync and harvest script.
 
 No browser and no network: archive.py's write_project runs against a temporary
-archive root, and harvest.py runs against a fake browser-harness (new_tab, js,
-cdp, ...) that answers the claude.ai API calls from a table. All data is
-synthetic.
+archive root, `archive.py import`/`sync`/`refile` run as subprocesses on
+synthetic export directories, and harvest.py runs against a fake
+browser-harness (new_tab, js, cdp, ...) that answers the claude.ai API calls
+from a table. All data is synthetic.
 
   python3 plugins/skillz/skills/claude-ai-archive/tests/test_archive.py
 """
@@ -14,6 +15,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import time
@@ -166,6 +168,105 @@ class WriteProjectFolders(unittest.TestCase):
         pdir = archive.write_project(project(U4, "Beta"), "", self.root, project_folder_by_uuid(self.root))
         self.assertEqual(pdir.name, "beta-2")
         self.assertEqual(sorted(p.name for p in own.iterdir()), ["notes.md"])
+
+
+C1 = "c0000001-0000-4000-8000-000000000001"
+C2 = "c0000002-0000-4000-8000-000000000002"
+
+
+def chat(uuid, name, summary="", **block_fields):
+    """A conversation record; every version of a chat keeps the same updated_at."""
+    block = {"type": "text", "text": f"synthetic text of {name}", "citations": [], **block_fields}
+    return {"uuid": uuid, "name": name, "summary": summary, "created_at": "2000-03-01T10:00:00Z",
+            "updated_at": "2000-03-02T10:00:00Z", "account": {"uuid": U4},
+            "chat_messages": [{"uuid": f"{uuid[:8]}-m1", "sender": "human", "text": "", "content": [block],
+                               "created_at": "2000-03-01T10:00:00Z", "updated_at": "2000-03-01T10:00:00Z",
+                               "attachments": [], "files": [], "parent_message_uuid": None}]}
+
+
+class SyncComparesWholeRecords(unittest.TestCase):
+    """A chat counts as unchanged only when its stored record equals the export's."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name) / "archive"
+        self.exports = Path(self.tmp.name) / "exports"
+        self.n = 0
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def run_mode(self, *args):
+        r = subprocess.run([sys.executable, str(SCRIPTS / "archive.py"), *args, "--archive-root", str(self.root)],
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr[-800:])
+        return r.stdout
+
+    def sync(self, convs, projects=(), mode="sync"):
+        """Write a synthetic export directory and run import/sync on it; return (new, updated, unchanged)."""
+        self.n += 1
+        d = self.exports / f"data-2001-01-{self.n:02d}"
+        (d / "projects").mkdir(parents=True)
+        (d / "users.json").write_text(json.dumps([{"uuid": U4, "full_name": "Test User",
+                                                   "email_address": "user@example.com", "verified_phone_number": ""}]))
+        (d / "memories.json").write_text(json.dumps([{"conversations_memory": "", "project_memories": {},
+                                                      "account_uuid": U4, "memory_files": []}]))
+        (d / "conversations.json").write_text(json.dumps(convs))
+        for p in projects:
+            (d / "projects" / f"{p['uuid']}.json").write_text(json.dumps(p))
+        out = self.run_mode(mode, "--export", str(d))
+        return tuple(int(x) for x in re.search(r"\+(\d+) new chats, ~(\d+) updated, (\d+) unchanged", out).groups())
+
+    def chats(self):
+        """{relative path: (bytes, mtime_ns)} for every chat file, filed or not."""
+        files = [*(self.root / "chats-unfiled").rglob("*"), *(self.root / "projects").glob("*/chats/*")]
+        return {str(f.relative_to(self.root)): (f.read_bytes(), f.stat().st_mtime_ns) for f in files if f.is_file()}
+
+    def test_a_summary_added_without_a_new_updated_at_rewrites_the_chat(self):
+        self.sync([chat(C1, "First chat"), chat(C2, "Second chat")], mode="import")
+        before = self.chats()
+        counts = self.sync([chat(C1, "First chat", summary="a synthetic summary"), chat(C2, "Second chat")])
+        self.assertEqual(counts, (0, 1, 1))
+        base = "chats-unfiled/2000/2000-03-01_first-chat_c0000001"
+        md = (self.root / f"{base}.md").read_text()
+        self.assertIn("summary: a synthetic summary", md.split("---", 2)[1])
+        self.assertEqual(json.loads((self.root / f"{base}.json").read_text()),
+                         chat(C1, "First chat", summary="a synthetic summary"))
+        after = self.chats()
+        other = [k for k in before if "c0000002" in k]
+        self.assertEqual([after[k] for k in other], [before[k] for k in other])   # untouched, not rewritten
+
+    def test_a_rename_without_a_new_updated_at_rewrites_the_pair_where_it_is_filed(self):
+        alpha = project(U1, "Alpha")
+        self.sync([chat(C1, "First chat")], projects=[alpha], mode="import")
+        (self.root / "_phase2_mapping.json").write_text(json.dumps(
+            {"mapping": {U1: {"name": "Alpha", "chats": [{"uuid": C1, "title": "First chat"}]}},
+             "errors": [], "new_projects_discovered": []}))
+        self.run_mode("refile")
+        counts = self.sync([chat(C1, "Renamed chat")], projects=[alpha])
+        self.assertEqual(counts, (0, 1, 0))
+        self.assertEqual(sorted(self.chats()), ["projects/alpha/chats/2000-03-01_renamed-chat_c0000001.json",
+                                                "projects/alpha/chats/2000-03-01_renamed-chat_c0000001.md"])
+        md = (self.root / "projects/alpha/chats/2000-03-01_renamed-chat_c0000001.md").read_text()
+        self.assertIn("title: Renamed chat", md)
+
+    def test_fields_the_md_does_not_render_refresh_only_the_json(self):
+        # a newer export carries block fields an older one lacked
+        self.sync([chat(C1, "First chat")], mode="import")
+        base = self.root / "chats-unfiled/2000/2000-03-01_first-chat_c0000001"
+        md_before = (base.with_suffix(".md")).read_bytes()
+        grown = chat(C1, "First chat", hidden=False, tool_identifier=None)
+        self.assertEqual(self.sync([grown]), (0, 1, 0))
+        self.assertEqual(json.loads(base.with_suffix(".json").read_text()), grown)
+        self.assertEqual(base.with_suffix(".md").read_bytes(), md_before)
+
+    def test_a_repeat_sync_is_a_no_op(self):
+        convs = [chat(C1, "First chat", summary="a synthetic summary"), chat(C2, "Second chat")]
+        self.sync([chat(C1, "First chat"), chat(C2, "Second chat")], mode="import")
+        self.assertEqual(self.sync(convs), (0, 1, 1))
+        before = self.chats()
+        self.assertEqual(self.sync(convs), (0, 0, 2))
+        self.assertEqual(self.chats(), before)   # same bytes, and no file was rewritten
 
 
 class FakeBrowser:

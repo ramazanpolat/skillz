@@ -17,12 +17,22 @@ releases before v0.9.0 are described in their commits.
   takes at least that): the stem is trimmed on a character boundary, the
   extension and any `_N` duplicate suffix are kept, and duplicates are detected
   on the final name.
+- **A sync now notices a changed chat even when its `updated_at` did not
+  change.** claude.ai adds summaries to chats and renames them without bumping
+  `updated_at`, and `sync` skipped any chat whose `updated_at` matched, so the
+  archive kept the old title and no summary. A chat now counts as unchanged
+  only when its stored `.json` equals the export's record. Any other chat is
+  rewritten in place, where it is filed, and counted as updated. An export whose
+  schema has grown (new fields on old chats) refreshes those raw records too,
+  without changing the rendered `.md`, so the first sync after such an export
+  can report many more updated chats than chats whose text changed.
 - **The harvest step opens a claude.ai tab of its own and closes it.** It used
   to adopt the current tab (`ensure_real_tab()`), so its fetches could run in a
   tab the user was working in, and it left any tab it opened behind. The tab is
   now closed when the fetches end, failed or not.
-- **Tests.** `tests/test_archive.py` covers both, including names at the
-  255-byte limit, plus the same-name project folders fixed earlier: a project
+- **Tests.** `tests/test_archive.py` covers these, including names at the
+  255-byte limit and a summary, a rename and new fields under an unchanged
+  `updated_at`, plus the same-name project folders fixed earlier: a project
   whose name matches an existing project gets its own `-N` folder and never
   writes into the other one's `CLAUDE.md`. No browser and no network;
   `tests/run-all.sh` runs it.
